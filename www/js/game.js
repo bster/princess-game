@@ -22,23 +22,23 @@ import { hitTestTitle, hitTestLeaderboardBack } from './ui/titleLayout';
 
 const POWER_FANFARE = {
   fire: {
-    title: 'Royal Roast',
-    tagline: 'B button: lob justice. Goblins crisp evenly.',
+    title: "Dragon's Breath",
+    tagline: 'Press B to hurl fireballs. Goblins beware!',
     color: '#FF4500',
   },
   flight: {
-    title: 'Dress Lift Protocol',
-    tagline: 'Hold jump in mid-air — gravy can wait.',
+    title: 'Fairy Wings',
+    tagline: 'Hold jump in mid-air to soar over danger.',
     color: '#87CEEB',
   },
   shield: {
-    title: 'Bubble of Bureaucracy',
-    tagline: 'Three hits rejected pending review.',
+    title: 'Royal Guard',
+    tagline: 'Absorbs 3 hits before the magic fades.',
     color: '#4169E1',
   },
   growth: {
-    title: 'Tea-Time Growth Spurt',
-    tagline: '+1 heart. Stomp print enlarges.',
+    title: 'Enchanted Growth',
+    tagline: 'Gain a heart and grow your royal stature.',
     color: '#32CD32',
   },
 };
