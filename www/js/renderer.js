@@ -1088,11 +1088,20 @@ export class Renderer {
     ctx.fillText('Score: ' + game.score, W / 2, H * 0.45);
 
     if (game.gameOverTimer > 60) {
-      if (Math.sin(game.frame * 0.08) > 0) {
-        ctx.font = '18px Georgia';
-        ctx.fillStyle = '#fff';
-        ctx.fillText('Tap — save score & return to title', W / 2, H * 0.58);
-      }
+      const btnW = 220;
+      const btnH = 48;
+      const btnX = W / 2 - btnW / 2;
+      const btnY = H * 0.54;
+      const pulse = (Math.sin(game.frame * 0.08) + 1) / 2;
+      ctx.globalAlpha = 0.7 + pulse * 0.3;
+      ctx.fillStyle = '#7c3aed';
+      ctx.beginPath();
+      ctx.roundRect(btnX, btnY, btnW, btnH, 12);
+      ctx.fill();
+      ctx.font = 'bold 18px Georgia';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('Tap to Continue', W / 2, btnY + btnH / 2 + 6);
+      ctx.globalAlpha = 1;
     }
 
     ctx.textAlign = 'left';

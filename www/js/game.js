@@ -245,7 +245,8 @@ export class Game {
 
   _updateGameOver(input) {
     this.gameOverTimer++;
-    if (this.gameOverTimer > 85 && input.jumpEdge && !this._gameOverPrompted) {
+    const tapped = input.consumeTap();
+    if (this.gameOverTimer > 85 && tapped && !this._gameOverPrompted) {
       this._gameOverPrompted = true;
       const name = window.prompt('Save this score to the leaderboard?', 'Hero');
       if (name !== null) {
