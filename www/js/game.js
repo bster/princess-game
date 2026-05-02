@@ -2,29 +2,45 @@
 // GAME — State machine, orchestration
 // ============================================================
 
-import { H, SECRET_GEM_SCORE, STOMP_CHAIN_BONUS } from './constants.js';
-import { rectsOverlap } from './utils.js';
-import { Camera } from './camera.js';
-import { ParticleSystem } from './particles.js';
-import { SoundManager } from './audio.js';
-import { LevelManager } from './levels/levelManager.js';
-import { resolvePlayerLevel } from './collider.js';
-import { Projectile } from './entities/projectile.js';
-import { PatrolEnemy } from './entities/enemies/patrolEnemy.js';
-import { FireAbility } from './abilities/fireAbility.js';
-import { FlightAbility } from './abilities/flightAbility.js';
-import { ShieldAbility } from './abilities/shieldAbility.js';
-import { GrowthAbility } from './abilities/growthAbility.js';
-import { MedalManager } from './medals.js';
-import * as ProgressSave from './progressSave.js';
-import { addLeaderboardEntry } from './leaderboard.js';
-import { hitTestTitle, hitTestLeaderboardBack } from './ui/titleLayout.js';
+import { H, SECRET_GEM_SCORE, STOMP_CHAIN_BONUS } from './constants';
+import { rectsOverlap } from './utils';
+import { Camera } from './camera';
+import { ParticleSystem } from './particles';
+import { SoundManager } from './audio';
+import { LevelManager } from './levels/levelManager';
+import { resolvePlayerLevel } from './collider';
+import { Projectile } from './entities/projectile';
+import { PatrolEnemy } from './entities/enemies/patrolEnemy';
+import { FireAbility } from './abilities/fireAbility';
+import { FlightAbility } from './abilities/flightAbility';
+import { ShieldAbility } from './abilities/shieldAbility';
+import { GrowthAbility } from './abilities/growthAbility';
+import { MedalManager } from './medals';
+import * as ProgressSave from './progressSave';
+import { addLeaderboardEntry } from './leaderboard';
+import { hitTestTitle, hitTestLeaderboardBack } from './ui/titleLayout';
 
 const POWER_FANFARE = {
-  fire: { title: 'Royal Roast', tagline: 'B button: lob justice. Goblins crisp evenly.', color: '#FF4500' },
-  flight: { title: 'Dress Lift Protocol', tagline: 'Hold jump in mid-air — gravy can wait.', color: '#87CEEB' },
-  shield: { title: 'Bubble of Bureaucracy', tagline: 'Three hits rejected pending review.', color: '#4169E1' },
-  growth: { title: 'Tea-Time Growth Spurt', tagline: '+1 heart. Stomp print enlarges.', color: '#32CD32' },
+  fire: {
+    title: 'Royal Roast',
+    tagline: 'B button: lob justice. Goblins crisp evenly.',
+    color: '#FF4500',
+  },
+  flight: {
+    title: 'Dress Lift Protocol',
+    tagline: 'Hold jump in mid-air — gravy can wait.',
+    color: '#87CEEB',
+  },
+  shield: {
+    title: 'Bubble of Bureaucracy',
+    tagline: 'Three hits rejected pending review.',
+    color: '#4169E1',
+  },
+  growth: {
+    title: 'Tea-Time Growth Spurt',
+    tagline: '+1 heart. Stomp print enlarges.',
+    color: '#32CD32',
+  },
 };
 
 export class Game {
@@ -85,12 +101,24 @@ export class Game {
     input.update();
 
     switch (this.state) {
-      case 'title': this._updateTitle(input); break;
-      case 'leaderboard': this._updateLeaderboard(input); break;
-      case 'playing': this._updatePlaying(input); break;
-      case 'levelComplete': this._updateLevelComplete(input); break;
-      case 'gameOver': this._updateGameOver(input); break;
-      case 'victory': this._updateVictory(input); break;
+      case 'title':
+        this._updateTitle(input);
+        break;
+      case 'leaderboard':
+        this._updateLeaderboard(input);
+        break;
+      case 'playing':
+        this._updatePlaying(input);
+        break;
+      case 'levelComplete':
+        this._updateLevelComplete(input);
+        break;
+      case 'gameOver':
+        this._updateGameOver(input);
+        break;
+      case 'victory':
+        this._updateVictory(input);
+        break;
     }
   }
 
@@ -172,7 +200,9 @@ export class Game {
     this.selectCursor = data.character === 'frank' ? 1 : 0;
     this.tiaraCount = data.tiaraCount ?? 0;
     this.nextLifeTiaras = data.nextLifeTiaras ?? 10;
-    this.secretsCollectedIds = Array.isArray(data.secretsCollected) ? data.secretsCollected.slice() : [];
+    this.secretsCollectedIds = Array.isArray(data.secretsCollected)
+      ? data.secretsCollected.slice()
+      : [];
     this.state = 'playing';
     this.abilityFanfare = null;
     this._initLevel(this.levelIndex);
@@ -262,7 +292,11 @@ export class Game {
       if (this.frame % 2 !== 0) return; // skip every other frame for slow-mo
     }
 
-    if (this.abilityFanfare && this.abilityFanfare.freezeLeft <= 0 && this.abilityFanfare.timer > 0) {
+    if (
+      this.abilityFanfare &&
+      this.abilityFanfare.freezeLeft <= 0 &&
+      this.abilityFanfare.timer > 0
+    ) {
       this.abilityFanfare.timer--;
       if (this.abilityFanfare.timer <= 0) this.abilityFanfare = null;
     }
@@ -311,7 +345,6 @@ export class Game {
 
     // Skid dust — when turnaround happens at speed
     if (player.onGround && player._wasOnGround) {
-      const prevVx = player.vx - (player.facing > 0 ? 1 : -1) * 0.7; // approximate pre-decel vx
       // Detect direction reversal: facing changed while moving fast
       if (Math.abs(player.vx) > 1.5 && player.vx * player.facing < -0.5) {
         this.particles.spawnSkidDust(player.x, player.y + player.h, player.facing);
@@ -321,9 +354,14 @@ export class Game {
     // Run dust — emit while running on ground
     if (player.onGround && Math.abs(player.vx) > 2 && this.frame % 4 === 0) {
       this.particles.create(
-        player.x - player.facing * 8, player.y + player.h,
-        -player.facing * 0.5, -Math.random() * 1,
-        '#c8b070', 12, 2, 'dot'
+        player.x - player.facing * 8,
+        player.y + player.h,
+        -player.facing * 0.5,
+        -Math.random() * 1,
+        '#c8b070',
+        12,
+        2,
+        'dot'
       );
     }
 
@@ -355,8 +393,13 @@ export class Game {
         if (en.shotRequested) {
           const dir = en.facing;
           const proj = new Projectile(
-            en.x + dir * 20, en.y + 5,
-            dir * 4, 0, 'enemy', 1, 'enemyShot'
+            en.x + dir * 20,
+            en.y + 5,
+            dir * 4,
+            0,
+            'enemy',
+            1,
+            'enemyShot'
           );
           proj.gravity = 0;
           this.projectiles.push(proj);
@@ -386,8 +429,7 @@ export class Game {
 
       // Off screen / out of level (avoid camera-only bounds — long levels need wider span)
       const lvW = this.levelData.width;
-      if (proj.y > H + 50 || proj.y < -50 ||
-          proj.x < -100 || proj.x > lvW + 120) {
+      if (proj.y > H + 50 || proj.y < -50 || proj.x < -100 || proj.x > lvW + 120) {
         this.projectiles.splice(i, 1);
         continue;
       }
@@ -412,8 +454,18 @@ export class Game {
         // Enemy projectile hits player
         if (!player.dead && player.invincible <= 0) {
           const px = player.x - player.w / 2;
-          if (rectsOverlap(px, player.y, player.w, player.h,
-                           proj.x - proj.w / 2, proj.y - proj.h / 2, proj.w, proj.h)) {
+          if (
+            rectsOverlap(
+              px,
+              player.y,
+              player.w,
+              player.h,
+              proj.x - proj.w / 2,
+              proj.y - proj.h / 2,
+              proj.w,
+              proj.h
+            )
+          ) {
             this.stompChain = 0;
             this.stompChainTimer = 0;
             this.levelHitsTaken++;
@@ -500,17 +552,19 @@ export class Game {
           this.levelCompleteTimer = 0;
           ProgressSave.saveRun(this._runPayload());
         }
-      } else if (Math.abs(player.x - this.flag.x) < 30 &&
-                 player.y + player.h > this.flag.y - 140) {
+      } else if (Math.abs(player.x - this.flag.x) < 30 && player.y + player.h > this.flag.y - 140) {
         this.flag.reached = true;
         this.flag.reachedFrame = 0;
       }
     }
 
     // Cage check (level 5)
-    if (this.cage && !this.cage.open &&
-        Math.abs(player.x - this.cage.x - 35) < 50 &&
-        player.y + player.h > this.cage.y) {
+    if (
+      this.cage &&
+      !this.cage.open &&
+      Math.abs(player.x - this.cage.x - 35) < 50 &&
+      player.y + player.h > this.cage.y
+    ) {
       this.cage.open = true;
       this._evaluateMedals();
       this._addScore(500, this.cage.x + 35, this.cage.y);
@@ -528,8 +582,9 @@ export class Game {
     const px = player.x - player.w / 2;
     const ey = enemy.y;
 
-    if (!rectsOverlap(px, player.y, player.w, player.h,
-                      enemy.x - enemy.w / 2, ey, enemy.w, enemy.h)) {
+    if (
+      !rectsOverlap(px, player.y, player.w, player.h, enemy.x - enemy.w / 2, ey, enemy.w, enemy.h)
+    ) {
       return false;
     }
 
@@ -548,7 +603,12 @@ export class Game {
         const chainBonus = (this.stompChain - 1) * STOMP_CHAIN_BONUS;
         if (chainBonus > 0) {
           this.score += chainBonus;
-          this.particles.createText(enemy.x, enemy.y - 44, `Stomp ×${this.stompChain} +${chainBonus}`, '#FFD700');
+          this.particles.createText(
+            enemy.x,
+            enemy.y - 44,
+            `Stomp ×${this.stompChain} +${chainBonus}`,
+            '#FFD700'
+          );
         }
         this._addScore(100, enemy.x, enemy.y);
         this.particles.spawnStomp(enemy.x, enemy.y);
@@ -592,10 +652,7 @@ export class Game {
       // Spawn 2 minion goblins
       for (let i = 0; i < 2; i++) {
         const sx = boss.x + (i === 0 ? -80 : 80);
-        const minion = new PatrolEnemy(
-          sx, this.levelData.groundY - 38, 40, 38,
-          'goblin', 60, 1.5
-        );
+        const minion = new PatrolEnemy(sx, this.levelData.groundY - 38, 40, 38, 'goblin', 60, 1.5);
         minion.startX = sx;
         this.enemies.push(minion);
       }
@@ -605,7 +662,12 @@ export class Game {
     if (boss.slamRequested) {
       // Shockwave: damage player if on ground near boss
       const player = this.player;
-      if (player.onGround && Math.abs(player.x - boss.x) < 150 && !player.dead && player.invincible <= 0) {
+      if (
+        player.onGround &&
+        Math.abs(player.x - boss.x) < 150 &&
+        !player.dead &&
+        player.invincible <= 0
+      ) {
         this.stompChain = 0;
         this.stompChainTimer = 0;
         this.levelHitsTaken++;
@@ -623,8 +685,12 @@ export class Game {
         this.particles.create(
           boss.x + (Math.random() - 0.5) * 100,
           this.levelData.groundY - 5,
-          (Math.random() - 0.5) * 6, -Math.random() * 3,
-          '#FFD700', 20, 4, 'star'
+          (Math.random() - 0.5) * 6,
+          -Math.random() * 3,
+          '#FFD700',
+          20,
+          4,
+          'star'
         );
       }
       boss.slamRequested = false;
@@ -634,8 +700,13 @@ export class Game {
       boss.throwRequested = false;
       // Throw hammer as projectile
       const proj = new Projectile(
-        boss.x + boss.facing * 30, boss.y + 10,
-        boss.facing * 6, -3, 'enemy', 1, 'enemyShot'
+        boss.x + boss.facing * 30,
+        boss.y + 10,
+        boss.facing * 6,
+        -3,
+        'enemy',
+        1,
+        'enemyShot'
       );
       proj.gravity = 0.15;
       this.projectiles.push(proj);
@@ -647,11 +718,20 @@ export class Game {
     let ability;
 
     switch (type) {
-      case 'fire': ability = new FireAbility(); break;
-      case 'flight': ability = new FlightAbility(); break;
-      case 'shield': ability = new ShieldAbility(); break;
-      case 'growth': ability = new GrowthAbility(); break;
-      default: return;
+      case 'fire':
+        ability = new FireAbility();
+        break;
+      case 'flight':
+        ability = new FlightAbility();
+        break;
+      case 'shield':
+        ability = new ShieldAbility();
+        break;
+      case 'growth':
+        ability = new GrowthAbility();
+        break;
+      default:
+        return;
     }
 
     this.player.addAbility(ability);

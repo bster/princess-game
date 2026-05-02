@@ -2,8 +2,8 @@
 // PATROL ENEMY — Goblin / slime walking back and forth
 // ============================================================
 
-import { Entity } from '../entity.js';
-import { ENEMY_HP } from '../../constants.js';
+import { Entity } from '../entity';
+import { ENEMY_HP } from '../../constants';
 
 export class PatrolEnemy extends Entity {
   constructor(x, y, w, h, subtype, patrolRange, speedMult = 1) {

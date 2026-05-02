@@ -2,7 +2,7 @@
 // SPRITE: Flying Enemy (bat-goblin)
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 export function drawFlyingEnemy(ctx, x, y, frame, squished) {
   ctx.save();

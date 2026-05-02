@@ -2,7 +2,7 @@
 // SPRITES: Environment — clouds, bushes, trees, castle, flag, cage
 // ============================================================
 
-import { C, CROUCH_H } from '../constants.js';
+import { C, CROUCH_H } from '../constants';
 
 export function drawCloud(ctx, x, y, w) {
   ctx.fillStyle = 'rgba(0,0,0,0.06)';
@@ -179,7 +179,8 @@ export function drawFlag(ctx, x, y, reachedFrame) {
 }
 
 export function drawCage(ctx, x, y, open) {
-  const w = 70, h = 80;
+  const w = 70,
+    h = 80;
   if (open) ctx.globalAlpha = 0.3;
 
   ctx.fillStyle = C.cageTop;
@@ -245,7 +246,7 @@ export function drawBarrier(ctx, x, groundY, w, gapH, totalH) {
   // Side pillars framing the crawl space
   const pillarW = 5;
   ctx.fillStyle = '#7a7268';
-  ctx.fillRect(x, blockBot, pillarW, gapH);           // left pillar
+  ctx.fillRect(x, blockBot, pillarW, gapH); // left pillar
   ctx.fillRect(x + w - pillarW, blockBot, pillarW, gapH); // right pillar
 
   // Highlight left pillar top, shadow right

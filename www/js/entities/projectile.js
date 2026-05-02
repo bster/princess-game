@@ -2,7 +2,7 @@
 // PROJECTILE — Fireballs + enemy shots
 // ============================================================
 
-import { Entity } from './entity.js';
+import { Entity } from './entity';
 
 export class Projectile extends Entity {
   constructor(x, y, vx, vy, owner, damage, type) {

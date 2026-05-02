@@ -6,10 +6,12 @@
 // and slight per-tile color variation for visual richness.
 
 import {
-  PLATFORM_HIGHLIGHT, PLATFORM_SHADOW,
-  PLATFORM_GRAD_TOP, PLATFORM_GRAD_BOT,
-  BRICK_VARIATION, H
-} from '../constants.js';
+  PLATFORM_HIGHLIGHT,
+  PLATFORM_SHADOW,
+  PLATFORM_GRAD_TOP,
+  PLATFORM_GRAD_BOT,
+  BRICK_VARIATION,
+} from '../constants';
 
 // ---- Deterministic hash for per-tile variation ----
 function tileHash(x, y) {
@@ -112,7 +114,8 @@ export function drawGroundWithDepth(ctx, groundY, vpW, vpH, camX, brickPattern, 
 
     // Per-tile color variation (deterministic spots)
     ctx.globalAlpha = BRICK_VARIATION;
-    const tileW = 32, tileH = 16;
+    const tileW = 32,
+      tileH = 16;
     const startTile = Math.floor((sx + camX) / tileW);
     const endTile = Math.ceil((sx + sw + camX) / tileW);
     for (let tx = startTile; tx <= endTile; tx++) {

@@ -14,7 +14,9 @@ export class MedalManager {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
-    } catch (e) { /* ignore parse errors */ }
+    } catch (e) {
+      /* ignore parse errors */
+    }
     return this._createEmpty();
   }
 
@@ -29,7 +31,9 @@ export class MedalManager {
   _save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.medals));
-    } catch (e) { /* ignore storage errors */ }
+    } catch (e) {
+      /* ignore storage errors */
+    }
   }
 
   evaluate(levelIndex, stats) {

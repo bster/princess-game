@@ -2,7 +2,7 @@
 // SPRITE: Tiara (collectible)
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 export function drawTiara(ctx, x, y, frame) {
   ctx.save();

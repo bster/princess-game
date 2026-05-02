@@ -2,7 +2,7 @@
 // TITLE SCREEN — Hit regions (must match renderer placement)
 // ============================================================
 
-import { W, H } from '../constants.js';
+import { W, H } from '../constants';
 
 function hitRect(px, py, r) {
   return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;

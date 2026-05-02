@@ -6,10 +6,10 @@ export function drawStar(ctx, x, y, r, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
   for (let i = 0; i < 5; i++) {
-    const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
+    const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
     const method = i === 0 ? 'moveTo' : 'lineTo';
     ctx[method](x + Math.cos(a) * r, y + Math.sin(a) * r);
-    const b = a + 2 * Math.PI / 5;
+    const b = a + (2 * Math.PI) / 5;
     ctx.lineTo(x + Math.cos(b) * r * 0.4, y + Math.sin(b) * r * 0.4);
   }
   ctx.closePath();
@@ -54,7 +54,7 @@ export function drawFireball(ctx, x, y, frame, facing) {
   ctx.restore();
 }
 
-export function drawEnemyShot(ctx, x, y, frame) {
+export function drawEnemyShot(ctx, x, y, _frame) {
   ctx.save();
   ctx.translate(x, y);
   // Purple energy ball

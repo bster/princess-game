@@ -2,7 +2,7 @@
 // SPRITE: Princess — Enhanced with squash-stretch
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 export function drawPrincess(ctx, x, y, facing, frame, jumping, crouching, scaleX, scaleY) {
   scaleX = scaleX || 1;

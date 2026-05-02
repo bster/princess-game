@@ -2,8 +2,8 @@
 // SHOOTER ENEMY — Stationary turret, faces player and fires
 // ============================================================
 
-import { Entity } from '../entity.js';
-import { ENEMY_HP } from '../../constants.js';
+import { Entity } from '../entity';
+import { ENEMY_HP } from '../../constants';
 
 export class ShooterEnemy extends Entity {
   constructor(x, y) {

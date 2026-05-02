@@ -2,8 +2,8 @@
 // FLIGHT ABILITY — Hold jump in air for near-zero gravity
 // ============================================================
 
-import { Ability } from './ability.js';
-import { FLIGHT_DURATION } from '../constants.js';
+import { Ability } from './ability';
+import { FLIGHT_DURATION } from '../constants';
 
 export class FlightAbility extends Ability {
   constructor() {
@@ -18,7 +18,7 @@ export class FlightAbility extends Ability {
     return 1;
   }
 
-  modifyMaxFall(player) {
+  modifyMaxFall(_player) {
     return 6; // Slower fall, but not hovering
   }
 }

@@ -4,6 +4,18 @@
 
 const KEY = 'princessfrank_run';
 
+/**
+ * @typedef {Object} RunPayload
+ * @property {number} levelIndex
+ * @property {number} lives
+ * @property {number} score
+ * @property {'princess'|'frank'} character
+ * @property {number} tiaraCount
+ * @property {number} nextLifeTiaras
+ * @property {string[]} secretsCollected
+ */
+
+/** @returns {RunPayload | null} */
 export function loadRun() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -19,19 +31,27 @@ export function loadRun() {
   }
 }
 
+/** @param {RunPayload} payload */
 export function saveRun(payload) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({
-      ...payload,
-      savedAt: Date.now(),
-    }));
-  } catch { /* quota / private mode */ }
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        ...payload,
+        savedAt: Date.now(),
+      })
+    );
+  } catch {
+    /* quota / private mode */
+  }
 }
 
 export function clearRun() {
   try {
     localStorage.removeItem(KEY);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function hasRunSave() {

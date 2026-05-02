@@ -2,8 +2,8 @@
 // GROWTH ABILITY — 1.5x size, +1 HP
 // ============================================================
 
-import { Ability } from './ability.js';
-import { GROWTH_DURATION } from '../constants.js';
+import { Ability } from './ability';
+import { GROWTH_DURATION } from '../constants';
 
 export class GrowthAbility extends Ability {
   constructor() {

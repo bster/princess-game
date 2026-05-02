@@ -2,7 +2,7 @@
 // SPRITE: Shooter Enemy (turret goblin)
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 export function drawShooterEnemy(ctx, x, y, frame, facing, squished) {
   ctx.save();

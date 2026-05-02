@@ -2,8 +2,8 @@
 // SHIELD ABILITY — Absorbs 3 hits
 // ============================================================
 
-import { Ability } from './ability.js';
-import { SHIELD_DURATION } from '../constants.js';
+import { Ability } from './ability';
+import { SHIELD_DURATION } from '../constants';
 
 export class ShieldAbility extends Ability {
   constructor() {

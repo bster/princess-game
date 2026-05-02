@@ -6,7 +6,7 @@
 // Tilde (~, Shift+`) toggles the visual debug overlay
 // (shadow bounding boxes, parallax offset markers).
 
-import { PARALLAX_FAR_SPEED, PARALLAX_MID_SPEED, SHADOW_FADE_HEIGHT } from './constants.js';
+import { PARALLAX_FAR_SPEED, PARALLAX_MID_SPEED } from './constants';
 
 export function renderDebug(ctx, game) {
   const p = game.player;
@@ -24,14 +24,15 @@ export function renderDebug(ctx, game) {
     `trauma: ${game.camera._trauma.toFixed(3)}`,
     `cam: ${game.camera.x.toFixed(0)}  shake: ${game.camera.shakeX.toFixed(1)},${game.camera.shakeY.toFixed(1)}`,
     `parallax far: ${(game.camera.x * PARALLAX_FAR_SPEED).toFixed(0)}  mid: ${(game.camera.x * PARALLAX_MID_SPEED).toFixed(0)}`,
-    `abilities: ${p.abilities.length ? p.abilities.map(a => a.type + ':' + a.remaining).join(', ') : 'none'}`,
-    `enemies: ${game.enemies.filter(e => e.alive).length}  projs: ${game.projectiles.length}`,
+    `abilities: ${p.abilities.length ? p.abilities.map((a) => a.type + ':' + a.remaining).join(', ') : 'none'}`,
+    `enemies: ${game.enemies.filter((e) => e.alive).length}  projs: ${game.projectiles.length}`,
   ];
 
   ctx.save();
   ctx.font = '11px monospace';
   const lineH = 14;
-  const padX = 4, padY = 4;
+  const padX = 4,
+    padY = 4;
   const boxW = 280;
   const boxH = lines.length * lineH + padY * 2;
 
@@ -78,7 +79,11 @@ export function renderVisualDebug(ctx, game) {
     // Height label
     ctx.fillStyle = 'cyan';
     ctx.font = '9px monospace';
-    ctx.fillText(`h:${(shadowGroundY - shadowBottomY).toFixed(0)}`, p.x - camX + 4, (shadowBottomY + shadowGroundY) / 2);
+    ctx.fillText(
+      `h:${(shadowGroundY - shadowBottomY).toFixed(0)}`,
+      p.x - camX + 4,
+      (shadowBottomY + shadowGroundY) / 2
+    );
   }
   ctx.setLineDash([]);
 

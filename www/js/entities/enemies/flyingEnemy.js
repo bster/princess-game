@@ -2,8 +2,8 @@
 // FLYING ENEMY — Bat-goblin, horizontal patrol at fixed height
 // ============================================================
 
-import { Entity } from '../entity.js';
-import { ENEMY_HP } from '../../constants.js';
+import { Entity } from '../entity';
+import { ENEMY_HP } from '../../constants';
 
 export class FlyingEnemy extends Entity {
   constructor(x, y, patrolRange = 100) {

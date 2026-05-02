@@ -3,15 +3,29 @@
 // Physics split: simulate() → applyMovement() → (external collision)
 // ============================================================
 
-import { Entity } from './entity.js';
+import { Entity } from './entity';
 import {
-  GRAVITY_RISE, GRAVITY_FALL, GRAVITY_CUT, JUMP_FORCE,
-  MAX_SPEED, GROUND_ACCEL, GROUND_DECEL, TURN_DECEL,
-  AIR_ACCEL, AIR_DECEL, MAX_FALL, STOMP_BOUNCE,
-  COYOTE_FRAMES, BUFFER_FRAMES, CROUCH_H, STAND_H,
-  APEX_THRESHOLD, APEX_GRAVITY_MOD,
-  KNOCKBACK_VX, KNOCKBACK_VY
-} from '../constants.js';
+  GRAVITY_RISE,
+  GRAVITY_FALL,
+  GRAVITY_CUT,
+  JUMP_FORCE,
+  MAX_SPEED,
+  GROUND_ACCEL,
+  GROUND_DECEL,
+  TURN_DECEL,
+  AIR_ACCEL,
+  AIR_DECEL,
+  MAX_FALL,
+  STOMP_BOUNCE,
+  COYOTE_FRAMES,
+  BUFFER_FRAMES,
+  CROUCH_H,
+  STAND_H,
+  APEX_THRESHOLD,
+  APEX_GRAVITY_MOD,
+  KNOCKBACK_VX,
+  KNOCKBACK_VY,
+} from '../constants';
 
 export class Player extends Entity {
   constructor(x, y) {
@@ -49,10 +63,10 @@ export class Player extends Entity {
     const wasCrouching = this.crouching;
     this.crouching = input.down && this.onGround;
     if (this.crouching && !wasCrouching) {
-      this.y += (STAND_H - CROUCH_H);
+      this.y += STAND_H - CROUCH_H;
       this.h = CROUCH_H;
     } else if (!this.crouching && wasCrouching) {
-      this.y -= (STAND_H - CROUCH_H);
+      this.y -= STAND_H - CROUCH_H;
       this.h = STAND_H;
     }
 
@@ -218,10 +232,10 @@ export class Player extends Entity {
   }
 
   hasAbility(type) {
-    return this.abilities.some(ab => ab.type === type);
+    return this.abilities.some((ab) => ab.type === type);
   }
 
   getAbility(type) {
-    return this.abilities.find(ab => ab.type === type);
+    return this.abilities.find((ab) => ab.type === type);
   }
 }

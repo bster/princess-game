@@ -2,7 +2,7 @@
 // SPRITE: Goblin
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 export function drawGoblin(ctx, x, y, frame, squished) {
   ctx.save();

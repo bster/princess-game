@@ -2,7 +2,7 @@
 // SPRITE: Frank the Pug
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 export function drawFrank(ctx, x, y, frame, happy) {
   ctx.save();

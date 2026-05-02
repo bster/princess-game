@@ -2,8 +2,15 @@
 // PARTICLE SYSTEM
 // ============================================================
 
-import { C, DUST_LANDING_COUNT, DUST_LANDING_LIFE, DUST_LANDING_SPREAD,
-         DUST_SKID_COUNT, DUST_SKID_LIFE, DUST_SKID_SPREAD } from './constants.js';
+import {
+  C,
+  DUST_LANDING_COUNT,
+  DUST_LANDING_LIFE,
+  DUST_LANDING_SPREAD,
+  DUST_SKID_COUNT,
+  DUST_SKID_LIFE,
+  DUST_SKID_SPREAD,
+} from './constants';
 
 export class ParticleSystem {
   constructor() {
@@ -14,16 +21,31 @@ export class ParticleSystem {
   create(x, y, vx, vy, color, life, size, type) {
     if (this.particles.length >= this.maxParticles) return;
     this.particles.push({
-      x, y, vx, vy, color, life, maxLife: life,
-      size: size || 4, type: type || 'dot'
+      x,
+      y,
+      vx,
+      vy,
+      color,
+      life,
+      maxLife: life,
+      size: size || 4,
+      type: type || 'dot',
     });
   }
 
   createText(x, y, text, color) {
     if (this.particles.length >= this.maxParticles) return;
     this.particles.push({
-      x, y, vx: 0, vy: -1, color: color || C.crown,
-      life: 45, maxLife: 45, size: 0, type: 'text', text
+      x,
+      y,
+      vx: 0,
+      vy: -1,
+      color: color || C.crown,
+      life: 45,
+      maxLife: 45,
+      size: 0,
+      type: 'text',
+      text,
     });
   }
 
@@ -51,9 +73,14 @@ export class ParticleSystem {
   spawnVictoryHearts(x, y) {
     for (let i = 0; i < 3; i++) {
       this.create(
-        x + Math.random() * 40 - 20, y,
-        (Math.random() - 0.5) * 2, -1 - Math.random() * 2,
-        C.heart, 50, 6, 'heart'
+        x + Math.random() * 40 - 20,
+        y,
+        (Math.random() - 0.5) * 2,
+        -1 - Math.random() * 2,
+        C.heart,
+        50,
+        6,
+        'heart'
       );
     }
   }
@@ -65,7 +92,8 @@ export class ParticleSystem {
       const speed = 0.8 + Math.random() * 1.5;
       const spread = (Math.random() - 0.5) * DUST_LANDING_SPREAD;
       this.create(
-        x + spread, y,
+        x + spread,
+        y,
         Math.cos(angle) * speed * 1.5,
         Math.sin(angle) * speed,
         i % 2 === 0 ? '#c8b070' : '#b0a060',
@@ -81,7 +109,8 @@ export class ParticleSystem {
     for (let i = 0; i < DUST_SKID_COUNT; i++) {
       const spread = (Math.random() - 0.5) * DUST_SKID_SPREAD;
       this.create(
-        x - facing * 6 + spread, y,
+        x - facing * 6 + spread,
+        y,
         -facing * (1 + Math.random() * 2),
         -Math.random() * 1.2,
         '#c8b070',
@@ -118,7 +147,8 @@ export class ParticleSystem {
   update() {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      p.x += p.vx; p.y += p.vy;
+      p.x += p.vx;
+      p.y += p.vy;
       if (p.type === 'dot') p.vy += 0.1;
       if (p.type === 'text') p.vy -= 0.02;
       p.life--;

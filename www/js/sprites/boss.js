@@ -2,7 +2,7 @@
 // SPRITE: Boss — Goblin King (3x size, armored, spiked crown)
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 export function drawBoss(ctx, x, y, frame, phase, hp, maxHp, dazed, facing) {
   ctx.save();
@@ -10,10 +10,9 @@ export function drawBoss(ctx, x, y, frame, phase, hp, maxHp, dazed, facing) {
   if (facing < 0) ctx.scale(-1, 1);
 
   const bob = dazed ? 0 : Math.sin(frame * 0.08) * 3;
-  const scale = 1; // already 3x via entity size
 
   // Flash red when hit
-  const flashAlpha = (frame % 6 < 3 && dazed) ? 0.5 : 0;
+  const flashAlpha = frame % 6 < 3 && dazed ? 0.5 : 0;
 
   // Body (armored)
   ctx.fillStyle = phase >= 3 ? '#8B2252' : '#5C3A6E';
@@ -139,7 +138,7 @@ export function drawBoss(ctx, x, y, frame, phase, hp, maxHp, dazed, facing) {
   // Dazed stars
   if (dazed) {
     for (let i = 0; i < 3; i++) {
-      const a = frame * 0.1 + i * Math.PI * 2 / 3;
+      const a = frame * 0.1 + (i * Math.PI * 2) / 3;
       const sx = Math.cos(a) * 30;
       const sy = -70 + Math.sin(a * 2) * 5;
       ctx.fillStyle = '#FFD700';
@@ -159,10 +158,10 @@ export function drawBoss(ctx, x, y, frame, phase, hp, maxHp, dazed, facing) {
 function drawStarShape(ctx, x, y, r) {
   ctx.beginPath();
   for (let i = 0; i < 5; i++) {
-    const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
+    const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
     const method = i === 0 ? 'moveTo' : 'lineTo';
     ctx[method](x + Math.cos(a) * r, y + Math.sin(a) * r);
-    const b = a + 2 * Math.PI / 5;
+    const b = a + (2 * Math.PI) / 5;
     ctx.lineTo(x + Math.cos(b) * r * 0.4, y + Math.sin(b) * r * 0.4);
   }
   ctx.closePath();

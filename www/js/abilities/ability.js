@@ -10,7 +10,7 @@ export class Ability {
     this.expired = false;
   }
 
-  update(player) {
+  update(_player) {
     this.timer--;
     if (this.timer <= 0) this.expired = true;
   }
@@ -20,13 +20,23 @@ export class Ability {
     this.expired = false;
   }
 
-  onActivate(player) {}
-  onExpire(player) {}
-  onPlayerDraw(ctx, player) {}
-  modifyGravity(player, input) { return 1; }
-  modifyMaxFall(player) { return 14; }
-  modifyHitbox(player) { return { w: player.w, h: player.h }; }
+  onActivate(_player) {}
+  onExpire(_player) {}
+  onPlayerDraw(_ctx, _player) {}
+  modifyGravity(_player, _input) {
+    return 1;
+  }
+  modifyMaxFall(_player) {
+    return 14;
+  }
+  modifyHitbox(player) {
+    return { w: player.w, h: player.h };
+  }
 
-  get remaining() { return this.timer; }
-  get total() { return this.duration; }
+  get remaining() {
+    return this.timer;
+  }
+  get total() {
+    return this.duration;
+  }
 }

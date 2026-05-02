@@ -2,8 +2,8 @@
 // COLLIDER — Collision resolution, separate from movement
 // ============================================================
 
-import { CORNER_NUDGE_PX, CROUCH_H } from './constants.js';
-import { isOverGap } from './utils.js';
+import { CORNER_NUDGE_PX, CROUCH_H } from './constants';
+import { isOverGap } from './utils';
 
 export function resolvePlayerLevel(player, levelData) {
   if (player.dead) return;
@@ -23,14 +23,24 @@ export function resolvePlayerLevel(player, levelData) {
     const py = player.y + player.h;
     const prevPy = py - player.vy;
 
-    if (player.vy >= 0 && prevPy <= p.y + 2 &&
-        px + player.w > p.x && px < p.x + p.w &&
-        py >= p.y && py <= p.y + 20) {
+    if (
+      player.vy >= 0 &&
+      prevPy <= p.y + 2 &&
+      px + player.w > p.x &&
+      px < p.x + p.w &&
+      py >= p.y &&
+      py <= p.y + 20
+    ) {
       player.y = p.y - player.h;
       player.vy = 0;
       player.onGround = true;
-    } else if (!player._wasOnGround && player.vy > 0 && prevPy <= p.y + 2 &&
-               py >= p.y && py <= p.y + 20) {
+    } else if (
+      !player._wasOnGround &&
+      player.vy > 0 &&
+      prevPy <= p.y + 2 &&
+      py >= p.y &&
+      py <= p.y + 20
+    ) {
       // Corner correction: only when airborne and falling onto a platform
       const leftMiss = p.x - (px + player.w);
       const rightMiss = px - (p.x + p.w);
@@ -89,7 +99,7 @@ export function resolvePlayerBarriers(player, barriers, groundY) {
 
     // Standing (or jumping through the block zone) — push player out horizontally
     const overlapLeft = pRight - bx;
-    const overlapRight = (bx + bw) - pLeft;
+    const overlapRight = bx + bw - pLeft;
 
     if (overlapLeft < overlapRight) {
       // Push left

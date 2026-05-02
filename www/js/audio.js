@@ -7,13 +7,13 @@ export class SoundManager {
     this.muted = false;
   }
 
-  play(name) {
+  play(_name) {
     if (!this.muted) {
       // console.log('[SFX]', name);
     }
   }
 
-  playMusic(name) {
+  playMusic(_name) {
     if (!this.muted) {
       // console.log('[Music]', name);
     }

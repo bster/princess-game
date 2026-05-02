@@ -2,13 +2,28 @@
 // SPRITES: Power-up rose icons (in-world collectibles + HUD)
 // ============================================================
 
-import { C } from '../constants.js';
+import { C } from '../constants';
 
 const TYPES = {
-  fire:   { primary: C.firePrimary,   secondary: C.fireSecondary,   petal: '#FF69B4', center: '#FFD700' },
-  flight: { primary: C.flightPrimary, secondary: C.flightSecondary, petal: '#FF85C8', center: '#FFFFFF' },
-  shield: { primary: C.shieldPrimary, secondary: C.shieldSecondary, petal: '#FF5C9E', center: '#FFB6D9' },
-  growth: { primary: C.growthPrimary, secondary: C.growthSecondary, petal: '#FF6EB4', center: '#FFDDF0' },
+  fire: { primary: C.firePrimary, secondary: C.fireSecondary, petal: '#FF69B4', center: '#FFD700' },
+  flight: {
+    primary: C.flightPrimary,
+    secondary: C.flightSecondary,
+    petal: '#FF85C8',
+    center: '#FFFFFF',
+  },
+  shield: {
+    primary: C.shieldPrimary,
+    secondary: C.shieldSecondary,
+    petal: '#FF5C9E',
+    center: '#FFB6D9',
+  },
+  growth: {
+    primary: C.growthPrimary,
+    secondary: C.growthSecondary,
+    petal: '#FF6EB4',
+    center: '#FFDDF0',
+  },
 };
 
 function drawRoseShape(ctx, size, petalColor, centerColor) {

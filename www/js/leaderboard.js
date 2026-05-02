@@ -12,14 +12,18 @@ export function loadLeaderboard() {
       const arr = JSON.parse(raw);
       return Array.isArray(arr) ? arr : [];
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return [];
 }
 
 function persist(list) {
   try {
     localStorage.setItem(KEY, JSON.stringify(list));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function addLeaderboardEntry(name, score, character) {

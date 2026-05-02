@@ -19,12 +19,19 @@ export function randomRange(min, max) {
 }
 
 // Easing functions
-export function easeOutQuad(t) { return t * (2 - t); }
-export function easeInQuad(t) { return t * t; }
-export function easeOutBack(t) { const c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
+export function easeOutQuad(t) {
+  return t * (2 - t);
+}
+export function easeInQuad(t) {
+  return t * t;
+}
+export function easeOutBack(t) {
+  const c = 1.70158;
+  return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
+}
 export function easeOutElastic(t) {
   if (t === 0 || t === 1) return t;
-  return Math.pow(2, -10 * t) * Math.sin((t - 0.075) * (2 * Math.PI) / 0.3) + 1;
+  return Math.pow(2, -10 * t) * Math.sin(((t - 0.075) * (2 * Math.PI)) / 0.3) + 1;
 }
 
 export function isOverGap(x, w, gaps) {

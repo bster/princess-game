@@ -2,25 +2,44 @@
 // RENDERER — Sky, ground, HUD, menus, controls overlay
 // ============================================================
 
-import { W, H, C } from './constants.js';
-import { easeOutBack, easeOutElastic } from './utils.js';
-import { drawParallax, getParallaxLayers } from './render/parallax.js';
-import { drawContactShadow } from './render/shadows.js';
-import { drawPlatformWithBevel, drawGroundWithDepth } from './render/materials.js';
-import { drawPrincess } from './sprites/princess.js';
-import { drawGoblin } from './sprites/goblin.js';
-import { drawSlime } from './sprites/slime.js';
-import { drawFlyingEnemy } from './sprites/flyingEnemy.js';
-import { drawShooterEnemy } from './sprites/shooterEnemy.js';
-import { drawBoss } from './sprites/boss.js';
-import { drawFrank, drawFrankPlayer } from './sprites/frank.js';
-import { drawCloud, drawBush, drawTree, drawCastleBg, drawCrystal, drawTorch, drawRuins, drawFlag, drawCage, drawBarrier } from './sprites/environment.js';
-import { drawStar, drawHeart, drawFireball, drawEnemyShot, drawShieldBubble, drawWings, drawSecretGem } from './sprites/effects.js';
-import { drawTiara } from './sprites/tiara.js';
-import { drawPowerUpOrb, drawAbilityHUD } from './sprites/powerupIcons.js';
-import { hasRunSave } from './progressSave.js';
-import { getLeaderboardTop } from './leaderboard.js';
-import { getTitleUi } from './ui/titleLayout.js';
+import { W, H, C } from './constants';
+import { easeOutBack, easeOutElastic } from './utils';
+import { drawParallax, getParallaxLayers } from './render/parallax';
+import { drawContactShadow } from './render/shadows';
+import { drawPlatformWithBevel, drawGroundWithDepth } from './render/materials';
+import { drawPrincess } from './sprites/princess';
+import { drawGoblin } from './sprites/goblin';
+import { drawSlime } from './sprites/slime';
+import { drawFlyingEnemy } from './sprites/flyingEnemy';
+import { drawShooterEnemy } from './sprites/shooterEnemy';
+import { drawBoss } from './sprites/boss';
+import { drawFrank, drawFrankPlayer } from './sprites/frank';
+import {
+  drawCloud,
+  drawBush,
+  drawTree,
+  drawCastleBg,
+  drawCrystal,
+  drawTorch,
+  drawRuins,
+  drawFlag,
+  drawCage,
+  drawBarrier,
+} from './sprites/environment';
+import {
+  drawStar,
+  drawHeart,
+  drawFireball,
+  drawEnemyShot,
+  drawShieldBubble,
+  drawWings,
+  drawSecretGem,
+} from './sprites/effects';
+import { drawTiara } from './sprites/tiara';
+import { drawPowerUpOrb, drawAbilityHUD } from './sprites/powerupIcons';
+import { hasRunSave } from './progressSave';
+import { getLeaderboardTop } from './leaderboard';
+import { getTitleUi } from './ui/titleLayout';
 
 export class Renderer {
   constructor(ctx) {
@@ -38,25 +57,32 @@ export class Renderer {
   }
 
   _createBrickPattern() {
-    const bw = 64, bh = 32;
+    const bw = 64,
+      bh = 32;
     const bc = document.createElement('canvas');
-    bc.width = bw; bc.height = bh;
+    bc.width = bw;
+    bc.height = bh;
     const bctx = bc.getContext('2d');
     bctx.fillStyle = '#8B7355';
     bctx.fillRect(0, 0, bw, bh);
     const colors = ['#DAA520', '#D4992A', '#E0AD2C', '#CFA030'];
-    bctx.fillStyle = colors[0]; bctx.fillRect(1, 1, 30, 14);
-    bctx.fillStyle = colors[1]; bctx.fillRect(33, 1, 30, 14);
-    bctx.fillStyle = colors[2]; bctx.fillRect(1, 17, 14, 14);
-    bctx.fillStyle = colors[3]; bctx.fillRect(17, 17, 30, 14);
-    bctx.fillStyle = colors[0]; bctx.fillRect(49, 17, 14, 14);
+    bctx.fillStyle = colors[0];
+    bctx.fillRect(1, 1, 30, 14);
+    bctx.fillStyle = colors[1];
+    bctx.fillRect(33, 1, 30, 14);
+    bctx.fillStyle = colors[2];
+    bctx.fillRect(1, 17, 14, 14);
+    bctx.fillStyle = colors[3];
+    bctx.fillRect(17, 17, 30, 14);
+    bctx.fillStyle = colors[0];
+    bctx.fillRect(49, 17, 14, 14);
     bctx.fillStyle = 'rgba(255,235,180,0.35)';
-    [1,33].forEach(x => bctx.fillRect(x, 1, 30, 2));
-    [1,49].forEach(x => bctx.fillRect(x, 17, 14, 2));
+    [1, 33].forEach((x) => bctx.fillRect(x, 1, 30, 2));
+    [1, 49].forEach((x) => bctx.fillRect(x, 17, 14, 2));
     bctx.fillRect(17, 17, 30, 2);
     bctx.fillStyle = 'rgba(100,70,20,0.3)';
-    [1,33].forEach(x => bctx.fillRect(x, 13, 30, 2));
-    [1,49].forEach(x => bctx.fillRect(x, 29, 14, 2));
+    [1, 33].forEach((x) => bctx.fillRect(x, 13, 30, 2));
+    [1, 49].forEach((x) => bctx.fillRect(x, 29, 14, 2));
     bctx.fillRect(17, 29, 30, 2);
     this.brickPattern = this.ctx.createPattern(bc, 'repeat');
   }
@@ -87,7 +113,9 @@ export class Renderer {
 
     // Sun
     if (ld.sun) {
-      const sx = ld.sun[0], sy = ld.sun[1], sr = ld.sun[2];
+      const sx = ld.sun[0],
+        sy = ld.sun[1],
+        sr = ld.sun[2];
       const sunGlow = ctx.createRadialGradient(sx, sy, sr * 0.5, sx, sy, sr * 4);
       sunGlow.addColorStop(0, 'rgba(255,250,220,0.4)');
       sunGlow.addColorStop(0.5, 'rgba(255,240,200,0.1)');
@@ -102,10 +130,13 @@ export class Renderer {
 
     // Stars
     if (ld.stars) {
-      const starSeed = [30,90,120,200,280,60,170,320,350,40,150,250,310,100,210,340,80,260,180,50];
+      const starSeed = [
+        30, 90, 120, 200, 280, 60, 170, 320, 350, 40, 150, 250, 310, 100, 210, 340, 80, 260, 180,
+        50,
+      ];
       for (let i = 0; i < 20; i++) {
         const sx = (starSeed[i] * 3 + i * 200) % W;
-        const sy = 50 + (starSeed[(i + 5) % 20] * 2) % 200;
+        const sy = 50 + ((starSeed[(i + 5) % 20] * 2) % 200);
         const brightness = 0.5 + 0.5 * Math.sin(frame * 0.05 + i);
         ctx.globalAlpha = brightness;
         ctx.fillStyle = '#fff';
@@ -146,7 +177,7 @@ export class Renderer {
       ctx.fillStyle = '#2a2a3e';
       ctx.fillRect(0, 0, W, 80);
       for (let i = 0; i < 15; i++) {
-        const sx = i * 30 + 10 - (camX * 0.8) % 30;
+        const sx = i * 30 + 10 - ((camX * 0.8) % 30);
         ctx.fillStyle = '#3a3a55';
         ctx.beginPath();
         ctx.moveTo(sx, 0);
@@ -206,9 +237,14 @@ export class Renderer {
       // Idle sparkle particles
       if (frame % 20 === 0) {
         game.particles.create(
-          t.x + (Math.random() - 0.5) * 20, t.y - 5 + (Math.random() - 0.5) * 10,
-          (Math.random() - 0.5) * 0.5, -Math.random() * 0.8,
-          '#FFD700', 15, 2, 'star'
+          t.x + (Math.random() - 0.5) * 20,
+          t.y - 5 + (Math.random() - 0.5) * 10,
+          (Math.random() - 0.5) * 0.5,
+          -Math.random() * 0.8,
+          '#FFD700',
+          15,
+          2,
+          'star'
         );
       }
     }
@@ -274,8 +310,10 @@ export class Renderer {
       if (en.alive) {
         if (en.subtype === 'slime') drawSlime(ctx, ex, en.y, en.frame, false);
         else if (en.subtype === 'flying') drawFlyingEnemy(ctx, ex, en.y, en.frame, false);
-        else if (en.subtype === 'shooter') drawShooterEnemy(ctx, ex, en.y, en.frame, en.facing, false);
-        else if (en.subtype === 'boss') drawBoss(ctx, ex, en.y, en.frame, en.phase, en.hp, en.maxHp, en.dazed, en.facing);
+        else if (en.subtype === 'shooter')
+          drawShooterEnemy(ctx, ex, en.y, en.frame, en.facing, false);
+        else if (en.subtype === 'boss')
+          drawBoss(ctx, ex, en.y, en.frame, en.phase, en.hp, en.maxHp, en.dazed, en.facing);
         else drawGoblin(ctx, ex, en.y, en.frame, false);
 
         // White flash overlay on damage
@@ -285,8 +323,10 @@ export class Renderer {
       } else if (en.squishTimer > 0) {
         if (en.subtype === 'slime') drawSlime(ctx, ex, en.y + 12, en.frame, true);
         else if (en.subtype === 'flying') drawFlyingEnemy(ctx, ex, en.y + 12, en.frame, true);
-        else if (en.subtype === 'shooter') drawShooterEnemy(ctx, ex, en.y + 16, en.frame, en.facing, true);
-        else if (en.subtype === 'boss') drawBoss(ctx, ex, en.y, en.frame, en.phase, 0, en.maxHp, true, en.facing);
+        else if (en.subtype === 'shooter')
+          drawShooterEnemy(ctx, ex, en.y + 16, en.frame, en.facing, true);
+        else if (en.subtype === 'boss')
+          drawBoss(ctx, ex, en.y, en.frame, en.phase, 0, en.maxHp, true, en.facing);
         else drawGoblin(ctx, ex, en.y + 20, en.frame, true);
       }
     }
@@ -310,13 +350,29 @@ export class Renderer {
 
         const growthScale = player.hasAbility('growth') ? 1.5 : 1;
         if (game.character === 'frank') {
-          drawFrankPlayer(ctx, px, player.y + player.h, player.facing, player.frame,
-                          !player.onGround, player.crouching,
-                          player.scaleX * growthScale, player.scaleY * growthScale);
+          drawFrankPlayer(
+            ctx,
+            px,
+            player.y + player.h,
+            player.facing,
+            player.frame,
+            !player.onGround,
+            player.crouching,
+            player.scaleX * growthScale,
+            player.scaleY * growthScale
+          );
         } else {
-          drawPrincess(ctx, px, player.y + player.h, player.facing, player.frame,
-                       !player.onGround, player.crouching,
-                       player.scaleX * growthScale, player.scaleY * growthScale);
+          drawPrincess(
+            ctx,
+            px,
+            player.y + player.h,
+            player.facing,
+            player.frame,
+            !player.onGround,
+            player.crouching,
+            player.scaleX * growthScale,
+            player.scaleY * growthScale
+          );
         }
 
         // Player damage flash
@@ -491,18 +547,29 @@ export class Renderer {
     ctx.font = '12px Georgia';
     ctx.fillStyle = seconds <= parTime ? 'rgba(255,255,255,0.35)' : 'rgba(255,130,130,0.5)';
     ctx.fillText(seconds + 's', W / 2 - 25, hudY + 20);
-    ctx.fillStyle = game.levelTiarasCollected >= game.levelTotalTiaras ? 'rgba(90,200,90,0.6)' : 'rgba(255,215,0,0.4)';
+    ctx.fillStyle =
+      game.levelTiarasCollected >= game.levelTotalTiaras
+        ? 'rgba(90,200,90,0.6)'
+        : 'rgba(255,215,0,0.4)';
     ctx.fillText(game.levelTiarasCollected + '/' + game.levelTotalTiaras, W / 2 + 25, hudY + 20);
     ctx.textAlign = 'left';
 
     // Ability HUD icons
     const abilities = game.player.abilities;
     for (let i = 0; i < abilities.length; i++) {
-      drawAbilityHUD(ctx, 30 + i * 36, hudY + 45, abilities[i].type, abilities[i].remaining, abilities[i].total, game.frame);
+      drawAbilityHUD(
+        ctx,
+        30 + i * 36,
+        hudY + 45,
+        abilities[i].type,
+        abilities[i].remaining,
+        abilities[i].total,
+        game.frame
+      );
     }
 
     // Boss HP bar
-    const boss = game.enemies.find(e => e.type === 'boss' && e.alive);
+    const boss = game.enemies.find((e) => e.type === 'boss' && e.alive);
     if (boss) {
       this._renderBossHP(boss);
     }
@@ -510,7 +577,8 @@ export class Renderer {
 
   _renderBossHP(boss) {
     const ctx = this.ctx;
-    const barW = 200, barH = 12;
+    const barW = 200,
+      barH = 12;
     const bx = (W - barW) / 2;
     const by = 80;
 
@@ -535,7 +603,8 @@ export class Renderer {
     ctx.globalAlpha = 0.3;
 
     // D-pad
-    const dpadX = 80, dpadY = H - 80;
+    const dpadX = 80,
+      dpadY = H - 80;
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.roundRect(dpadX - 50, dpadY - 17, 100, 34, 8);
@@ -564,7 +633,8 @@ export class Renderer {
     ctx.fill();
 
     // A button (jump) — bottom-right
-    const aBtnX = W - 60, aBtnY = H - 80;
+    const aBtnX = W - 60,
+      aBtnY = H - 80;
     ctx.fillStyle = '#e74c3c';
     ctx.beginPath();
     ctx.arc(aBtnX, aBtnY, 30, 0, Math.PI * 2);
@@ -576,7 +646,8 @@ export class Renderer {
     ctx.fillText('A', aBtnX, aBtnY);
 
     // B button (fire) — upper-right
-    const bBtnX = W - 60, bBtnY = H - 160;
+    const bBtnX = W - 60,
+      bBtnY = H - 160;
     ctx.fillStyle = '#FF4500';
     ctx.beginPath();
     ctx.arc(bBtnX, bBtnY, 26, 0, Math.PI * 2);
@@ -625,7 +696,7 @@ export class Renderer {
     ctx.fillStyle = '#fff';
     ctx.shadowColor = '#000';
     ctx.shadowBlur = 8;
-    ctx.fillText(f.title, W / 2, H * 0.40);
+    ctx.fillText(f.title, W / 2, H * 0.4);
     ctx.shadowBlur = 0;
 
     ctx.font = '15px Georgia';
@@ -636,7 +707,11 @@ export class Renderer {
 
     ctx.font = '13px Georgia';
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(f.freezeLeft > 0 ? 'Hold still — tailoring finish…' : 'Good luck out there.', W / 2, H * 0.58);
+    ctx.fillText(
+      f.freezeLeft > 0 ? 'Hold still — tailoring finish…' : 'Good luck out there.',
+      W / 2,
+      H * 0.58
+    );
 
     ctx.restore();
   }
@@ -803,25 +878,50 @@ export class Renderer {
     };
 
     drawHeroPanel(ui.princessPanel, cursor === 0, () => {
-      drawPrincess(ctx, ui.princessPanel.x + ui.princessPanel.w / 2, ui.princessPanel.y + ui.princessPanel.h - 36, 1, frame, false);
+      drawPrincess(
+        ctx,
+        ui.princessPanel.x + ui.princessPanel.w / 2,
+        ui.princessPanel.y + ui.princessPanel.h - 36,
+        1,
+        frame,
+        false
+      );
       ctx.font = 'bold 15px Georgia';
       ctx.fillStyle = cursor === 0 ? '#fff' : 'rgba(255,255,255,0.55)';
       ctx.textAlign = 'center';
-      ctx.fillText('Princess', ui.princessPanel.x + ui.princessPanel.w / 2, ui.princessPanel.y + ui.princessPanel.h - 8);
+      ctx.fillText(
+        'Princess',
+        ui.princessPanel.x + ui.princessPanel.w / 2,
+        ui.princessPanel.y + ui.princessPanel.h - 8
+      );
     });
 
     drawHeroPanel(ui.frankPanel, cursor === 1, () => {
-      drawFrank(ctx, ui.frankPanel.x + ui.frankPanel.w / 2 - 10, ui.frankPanel.y + ui.frankPanel.h - 52, frame, true);
+      drawFrank(
+        ctx,
+        ui.frankPanel.x + ui.frankPanel.w / 2 - 10,
+        ui.frankPanel.y + ui.frankPanel.h - 52,
+        frame,
+        true
+      );
       ctx.font = 'bold 15px Georgia';
       ctx.fillStyle = cursor === 1 ? '#fff' : 'rgba(255,255,255,0.55)';
       ctx.textAlign = 'center';
-      ctx.fillText('Frank', ui.frankPanel.x + ui.frankPanel.w / 2, ui.frankPanel.y + ui.frankPanel.h - 8);
+      ctx.fillText(
+        'Frank',
+        ui.frankPanel.x + ui.frankPanel.w / 2,
+        ui.frankPanel.y + ui.frankPanel.h - 8
+      );
     });
 
     ctx.textAlign = 'center';
     ctx.font = '13px Georgia';
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(cursor === 0 ? 'Mission: rescue Frank' : 'Mission: rescue the Princess', W / 2, ui.princessPanel.y + ui.princessPanel.h + 22);
+    ctx.fillText(
+      cursor === 0 ? 'Mission: rescue Frank' : 'Mission: rescue the Princess',
+      W / 2,
+      ui.princessPanel.y + ui.princessPanel.h + 22
+    );
 
     const drawBtn = (b, label, sub, accent) => {
       ctx.fillStyle = accent ? 'rgba(46,204,113,0.35)' : 'rgba(255,255,255,0.12)';
@@ -844,7 +944,8 @@ export class Renderer {
 
     for (const b of ui.buttons) {
       if (b.id === 'continue') drawBtn(b, 'Continue run', 'Saved progress · lives left', true);
-      else if (b.id === 'newGame') drawBtn(b, 'New adventure', hasSave ? 'Replaces saved run' : 'Start world 1', false);
+      else if (b.id === 'newGame')
+        drawBtn(b, 'New adventure', hasSave ? 'Replaces saved run' : 'Start world 1', false);
       else if (b.id === 'leaderboard') drawBtn(b, 'Leaderboard', 'Local hall of fame', false);
     }
 
@@ -933,7 +1034,11 @@ export class Renderer {
           ctx.fillText(r.value + 's / ' + r.target + 's', 130, 6);
         } else {
           ctx.fillStyle = r.earned ? '#5cb85c' : '#aaa';
-          ctx.fillText(r.value === 0 ? 'Perfect!' : r.value + ' hit' + (r.value !== 1 ? 's' : ''), 130, 6);
+          ctx.fillText(
+            r.value === 0 ? 'Perfect!' : r.value + ' hit' + (r.value !== 1 ? 's' : ''),
+            130,
+            6
+          );
         }
 
         // "NEW!" flash for newly earned medals
@@ -1057,7 +1162,11 @@ export class Renderer {
         } else if (r.type === 'speedrun') {
           ctx.fillText(r.value + 's / ' + r.target + 's', W / 2 + 130, rowY + 5);
         } else {
-          ctx.fillText(r.value === 0 ? 'Perfect!' : r.value + ' hit' + (r.value !== 1 ? 's' : ''), W / 2 + 130, rowY + 5);
+          ctx.fillText(
+            r.value === 0 ? 'Perfect!' : r.value + ' hit' + (r.value !== 1 ? 's' : ''),
+            W / 2 + 130,
+            rowY + 5
+          );
         }
 
         ctx.restore();

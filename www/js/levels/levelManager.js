@@ -2,16 +2,16 @@
 // LEVEL MANAGER — Level loading, entity spawning
 // ============================================================
 
-import { H, STAND_H } from '../constants.js';
-import { getLevels } from './levelData.js';
-import { Player } from '../entities/player.js';
-import { PatrolEnemy } from '../entities/enemies/patrolEnemy.js';
-import { FlyingEnemy } from '../entities/enemies/flyingEnemy.js';
-import { ShooterEnemy } from '../entities/enemies/shooterEnemy.js';
-import { Boss } from '../entities/enemies/boss.js';
-import { Tiara } from '../entities/tiara.js';
-import { SecretGem } from '../entities/secretGem.js';
-import { PowerUpItem } from '../entities/powerup.js';
+import { STAND_H } from '../constants';
+import { getLevels } from './levelData';
+import { Player } from '../entities/player';
+import { PatrolEnemy } from '../entities/enemies/patrolEnemy';
+import { FlyingEnemy } from '../entities/enemies/flyingEnemy';
+import { ShooterEnemy } from '../entities/enemies/shooterEnemy';
+import { Boss } from '../entities/enemies/boss';
+import { Tiara } from '../entities/tiara';
+import { SecretGem } from '../entities/secretGem';
+import { PowerUpItem } from '../entities/powerup';
 
 export class LevelManager {
   constructor() {
@@ -61,14 +61,14 @@ export class LevelManager {
       }
 
       if (e.type === 'flying') {
-        const fy = e.y || (ld.groundY - 120);
+        const fy = e.y || ld.groundY - 120;
         enemy = new FlyingEnemy(e.x, fy, e.patrol);
         enemies.push(enemy);
         continue;
       }
 
       if (e.type === 'shooter') {
-        const sy = e.onPlatform ? e.y : (ld.groundY - 40);
+        const sy = e.onPlatform ? e.y : ld.groundY - 40;
         enemy = new ShooterEnemy(e.x, sy);
         if (e.onPlatform) {
           // Find the platform this enemy is on
@@ -111,12 +111,12 @@ export class LevelManager {
   }
 
   createTiaras() {
-    return this.levelData.tiaraDefs.map(t => new Tiara(t.x, t.y));
+    return this.levelData.tiaraDefs.map((t) => new Tiara(t.x, t.y));
   }
 
   createPowerUps() {
     if (!this.levelData.powerUpDefs) return [];
-    return this.levelData.powerUpDefs.map(p => new PowerUpItem(p.x, p.y, p.type));
+    return this.levelData.powerUpDefs.map((p) => new PowerUpItem(p.x, p.y, p.type));
   }
 
   createSecretGems(levelIndex, collectedIds) {

@@ -7,7 +7,7 @@
 //
 // Generic shapes are drawn procedurally — no image assets.
 
-import { PARALLAX_FAR_SPEED, PARALLAX_MID_SPEED } from '../constants.js';
+import { PARALLAX_FAR_SPEED, PARALLAX_MID_SPEED } from '../constants';
 
 // ---- Deterministic pseudo-random from seed (for repeatable hills) ----
 function seededRand(seed) {
@@ -105,15 +105,15 @@ function meadowLayers(groundY) {
       draw(ctx, ox, vpW, vpH) {
         drawMountainRange(ctx, ox, vpW, vpH, groundY - 60, 180, '#5b8a6f', 42, 6);
         drawMountainRange(ctx, ox * 1.3, vpW, vpH, groundY - 30, 120, '#4a7860', 77, 7);
-      }
+      },
     },
     {
       speed: PARALLAX_MID_SPEED,
-      opacity: 0.20,
+      opacity: 0.2,
       draw(ctx, ox, vpW, vpH) {
         drawHills(ctx, ox, vpW, vpH, groundY, 50, '#3a6a4a', 101, 8);
-      }
-    }
+      },
+    },
   ];
 }
 
@@ -121,19 +121,19 @@ function sunsetLayers(groundY) {
   return [
     {
       speed: PARALLAX_FAR_SPEED,
-      opacity: 0.30,
+      opacity: 0.3,
       draw(ctx, ox, vpW, vpH) {
         drawMountainRange(ctx, ox, vpW, vpH, groundY - 50, 160, '#8b4a3a', 55, 6);
         drawMountainRange(ctx, ox * 1.2, vpW, vpH, groundY - 20, 100, '#7a3a30', 88, 7);
-      }
+      },
     },
     {
       speed: PARALLAX_MID_SPEED,
       opacity: 0.22,
       draw(ctx, ox, vpW, vpH) {
         drawHills(ctx, ox, vpW, vpH, groundY, 45, '#6a3828', 120, 8);
-      }
-    }
+      },
+    },
   ];
 }
 
@@ -145,19 +145,19 @@ function cavernLayers(groundY) {
       draw(ctx, ox, vpW, vpH) {
         // Stalactite/stalagmite shapes
         drawMountainRange(ctx, ox, vpW, vpH, groundY - 40, 100, '#1a1a30', 33, 8);
-      }
+      },
     },
     {
       speed: PARALLAX_MID_SPEED,
       opacity: 0.12,
       draw(ctx, ox, vpW, vpH) {
         drawHills(ctx, ox, vpW, vpH, groundY, 35, '#151528', 66, 10);
-      }
-    }
+      },
+    },
   ];
 }
 
-function skyLayers(groundY) {
+function skyLayers(_groundY) {
   return [
     {
       speed: PARALLAX_FAR_SPEED,
@@ -165,7 +165,7 @@ function skyLayers(groundY) {
       draw(ctx, ox, vpW, vpH) {
         drawMountainRange(ctx, ox, vpW, vpH, vpH - 80, 200, '#9a8ab0', 44, 5);
         drawMountainRange(ctx, ox * 1.2, vpW, vpH, vpH - 50, 140, '#8878a0', 99, 6);
-      }
+      },
     },
     {
       speed: PARALLAX_MID_SPEED,
@@ -173,8 +173,8 @@ function skyLayers(groundY) {
       draw(ctx, ox, vpW, vpH) {
         // Distant floating islands
         drawHills(ctx, ox, vpW, vpH, vpH - 30, 60, '#776890', 77, 7);
-      }
-    }
+      },
+    },
   ];
 }
 
@@ -182,19 +182,19 @@ function darkLayers(groundY) {
   return [
     {
       speed: PARALLAX_FAR_SPEED,
-      opacity: 0.20,
+      opacity: 0.2,
       draw(ctx, ox, vpW, vpH) {
         drawMountainRange(ctx, ox, vpW, vpH, groundY - 50, 160, '#1a0a30', 60, 6);
         drawMountainRange(ctx, ox * 1.3, vpW, vpH, groundY - 20, 100, '#150828', 85, 7);
-      }
+      },
     },
     {
       speed: PARALLAX_MID_SPEED,
       opacity: 0.16,
       draw(ctx, ox, vpW, vpH) {
         drawTreeLine(ctx, ox, vpW, vpH, groundY, 70, '#120620', 110, 10);
-      }
-    }
+      },
+    },
   ];
 }
 

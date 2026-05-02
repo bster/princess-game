@@ -2,7 +2,7 @@
 // CAMERA — Lerp follow + look-ahead + trauma-based shake
 // ============================================================
 
-import { W } from './constants.js';
+import { W } from './constants';
 
 export class Camera {
   constructor() {
@@ -18,8 +18,12 @@ export class Camera {
     this._trauma = Math.min(1.0, this._trauma + intensity * 0.08);
   }
 
-  freeze() { this._frozen = true; }
-  unfreeze() { this._frozen = false; }
+  freeze() {
+    this._frozen = true;
+  }
+  unfreeze() {
+    this._frozen = false;
+  }
 
   update(targetX, levelWidth, facing) {
     if (this._frozen) {

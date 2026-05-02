@@ -2,13 +2,13 @@
 // TIARA — Collectible
 // ============================================================
 
-import { Entity } from './entity.js';
+import { Entity } from './entity';
 
 export class Tiara extends Entity {
   constructor(x, y) {
     super(x, y, 24, 20);
     this.collected = false;
-    this.frame = Math.random() * 100 | 0;
+    this.frame = (Math.random() * 100) | 0;
   }
 
   update() {

@@ -2,11 +2,11 @@
 // MAIN — Entry point: canvas setup, fixed timestep game loop
 // ============================================================
 
-import { W, H } from './constants.js';
-import { InputManager } from './input.js';
-import { Game } from './game.js';
-import { Renderer } from './renderer.js';
-import { renderDebug, renderVisualDebug } from './debug.js';
+import { W, H } from './constants';
+import { InputManager } from './input';
+import { Game } from './game';
+import { Renderer } from './renderer';
+import { renderDebug, renderVisualDebug } from './debug';
 
 // Canvas setup
 const canvas = document.getElementById('game');
@@ -16,17 +16,21 @@ canvas.height = H;
 
 function resize() {
   const s = Math.min(window.innerWidth / W, window.innerHeight / H);
-  canvas.style.width = (W * s) + 'px';
-  canvas.style.height = (H * s) + 'px';
+  canvas.style.width = W * s + 'px';
+  canvas.style.height = H * s + 'px';
 }
 resize();
 window.addEventListener('resize', resize);
 
 // Polyfill roundRect if needed
 if (!ctx.roundRect) {
-  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
-    const r = typeof radii === 'number' ? [radii,radii,radii,radii] :
-              Array.isArray(radii) ? radii.concat([0,0,0,0]).slice(0,4) : [0,0,0,0];
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, radii) {
+    const r =
+      typeof radii === 'number'
+        ? [radii, radii, radii, radii]
+        : Array.isArray(radii)
+          ? radii.concat([0, 0, 0, 0]).slice(0, 4)
+          : [0, 0, 0, 0];
     this.moveTo(x + r[0], y);
     this.lineTo(x + w - r[1], y);
     this.arcTo(x + w, y, x + w, y + r[1], r[1]);
@@ -46,9 +50,9 @@ const game = new Game();
 const renderer = new Renderer(ctx);
 
 // Debug overlay toggles
-let debugMode = false;       // text overlay (backtick)
+let debugMode = false; // text overlay (backtick)
 let visualDebugMode = false; // bounding boxes + shadows (tilde)
-window.addEventListener('keydown', e => {
+window.addEventListener('keydown', (e) => {
   if (e.key === '`') debugMode = !debugMode;
   if (e.key === '~') visualDebugMode = !visualDebugMode;
 });
