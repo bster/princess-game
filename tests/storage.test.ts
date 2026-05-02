@@ -33,6 +33,8 @@ describe('progressSave + leaderboard (localStorage)', () => {
     const ProgressSave = await import('../www/js/progressSave.js');
     ProgressSave.saveRun({
       levelIndex: 2,
+      maxReachableLevel: 3,
+      minigamesUsed: {},
       lives: 3,
       score: 1200,
       character: 'princess',

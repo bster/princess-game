@@ -2,8 +2,9 @@
 // MEDALS — Per-level star medal evaluation & persistence
 // ============================================================
 
+import { getLevelCount } from './levels/levelData';
+
 const STORAGE_KEY = 'princessfrank_medals';
-const TOTAL_LEVELS = 5;
 
 export class MedalManager {
   constructor() {
@@ -22,7 +23,8 @@ export class MedalManager {
 
   _createEmpty() {
     const medals = {};
-    for (let i = 0; i < TOTAL_LEVELS; i++) {
+    const n = getLevelCount();
+    for (let i = 0; i < n; i++) {
       medals[i] = { collector: false, speedrun: false, flawless: false };
     }
     return medals;
@@ -95,7 +97,8 @@ export class MedalManager {
 
   getTotalEarned() {
     let count = 0;
-    for (let i = 0; i < TOTAL_LEVELS; i++) {
+    const n = getLevelCount();
+    for (let i = 0; i < n; i++) {
       const m = this.medals[i] || {};
       if (m.collector) count++;
       if (m.speedrun) count++;
@@ -105,7 +108,7 @@ export class MedalManager {
   }
 
   getTotalPossible() {
-    return TOTAL_LEVELS * 3;
+    return getLevelCount() * 3;
   }
 
   reset() {

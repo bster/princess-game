@@ -40,6 +40,8 @@ import { drawPowerUpOrb, drawAbilityHUD } from './sprites/powerupIcons';
 import { hasRunSave } from './progressSave';
 import { getLeaderboardTop } from './leaderboard';
 import { getTitleUi } from './ui/titleLayout';
+import * as Ow from './overworld/overworldMap';
+import { MAP_EXIT_BTN } from './ui/mapExitUi';
 
 export class Renderer {
   constructor(ctx) {
@@ -573,6 +575,35 @@ export class Renderer {
     if (boss) {
       this._renderBossHP(boss);
     }
+
+    if (game.player && !game.player.dead) {
+      this._renderMapExitChip(ctx);
+    }
+  }
+
+  _renderMapExitChip(ctx) {
+    const b = MAP_EXIT_BTN;
+    ctx.save();
+    ctx.globalAlpha = 0.94;
+    ctx.fillStyle = 'rgba(25,32,72,0.88)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.42)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(b.x, b.y, b.w, b.h, 10);
+    ctx.fill();
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 14px Georgia';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('MAP', b.x + b.w / 2, b.y + b.h / 2 - 6);
+    ctx.font = '9px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.58)';
+    ctx.fillText('tap · M · Esc', b.x + b.w / 2, b.y + b.h / 2 + 10);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.restore();
   }
 
   _renderBossHP(boss) {
@@ -852,7 +883,7 @@ export class Renderer {
     ctx.font = '14px Georgia';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.fillText('Tap a hero · crawl for purple gems · stomp chains score big', W / 2, 178);
+    ctx.fillText('Runs start on the kingdom map — choose a hero, then enter towers from the world.', W / 2, 178);
 
     const drawHeroPanel = (r, selected, drawStuff) => {
       const ps = selected ? 1 + Math.sin(frame * 0.08) * 0.035 : 1;
@@ -943,16 +974,25 @@ export class Renderer {
     };
 
     for (const b of ui.buttons) {
-      if (b.id === 'continue') drawBtn(b, 'Continue run', 'Saved progress · lives left', true);
+      if (b.id === 'continue') drawBtn(b, 'Continue run', 'Kingdom map hub · resume run', true);
       else if (b.id === 'newGame')
-        drawBtn(b, 'New adventure', hasSave ? 'Replaces saved run' : 'Start world 1', false);
+        drawBtn(
+          b,
+          'New adventure',
+          hasSave ? 'Clears save · fresh map' : `Kingdom map hub · ${game.levelManager.totalLevels} towers`,
+          false
+        );
       else if (b.id === 'leaderboard') drawBtn(b, 'Leaderboard', 'Local hall of fame', false);
     }
 
     ctx.textAlign = 'center';
     ctx.font = '12px Georgia';
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText('Keys: arrows pick hero · Space new game · C continue · L board', W / 2, H - 22);
+    ctx.fillText(
+      'Hero: arrows · Space new run → map · C continue → map · L leaderboard',
+      W / 2,
+      H - 22
+    );
 
     const earned = game.medalManager.getTotalEarned();
     if (earned > 0) {
@@ -1058,7 +1098,7 @@ export class Renderer {
       ctx.font = '18px Georgia';
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'center';
-      ctx.fillText('Tap to Continue', W / 2, H * 0.72);
+      ctx.fillText('Jump — return to kingdom map', W / 2, H * 0.72);
     }
 
     ctx.textAlign = 'left';
@@ -1194,6 +1234,244 @@ export class Renderer {
       }
     }
 
+    ctx.textAlign = 'left';
+  }
+
+  renderWorldHud(game) {
+    const ctx = this.ctx;
+    const hudY = 54;
+    for (let i = 0; i < Math.min(game.lives, 10); i++) {
+      drawHeart(ctx, 24 + i * 22, hudY, 8, C.heart);
+    }
+    ctx.font = 'bold 20px Georgia';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'right';
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(game.score, W - 20, hudY + 6);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'center';
+    ctx.font = '15px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillText('Kingdom Map', W / 2, hudY + 8);
+    ctx.textAlign = 'left';
+  }
+
+  renderOverworld(game) {
+    const ctx = this.ctx;
+    ctx.save();
+
+    const camX = game.ow.x - W / 2;
+    const camY = game.ow.y - H / 2 + 70;
+
+    const sx = (wx) => wx - camX;
+    const sy = (wy) => wy - camY;
+
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#87CEEB');
+    sky.addColorStop(0.55, '#b8e994');
+    sky.addColorStop(1, '#78e08f');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(218,165,32,0.45)';
+    ctx.lineWidth = 36;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < Ow.OW_PATH_SPOTS.length - 1; i++) {
+      const a = Ow.OW_PATH_SPOTS[i];
+      const b = Ow.OW_PATH_SPOTS[i + 1];
+      ctx.moveTo(sx(a[0] + 38), sy(a[1] + 36));
+      ctx.quadraticCurveTo(sx((a[0] + b[0]) / 2 + 120), sy((a[1] + b[1]) / 2), sx(b[0] + 38), sy(b[1] + 36));
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = 'rgba(46, 204, 113, 0.25)';
+    for (let i = 0; i < 12; i++) {
+      const gx = ((i * 137 - camX * 0.2) % (W + 80)) - 40;
+      ctx.beginPath();
+      ctx.ellipse(gx, H - 40 - (i % 4) * 12, 60 + (i % 3) * 20, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const buildings = Ow.getOwBuildings();
+    for (const b of buildings) {
+      const x = sx(b.x);
+      const y = sy(b.y);
+      if (x < -120 || x > W + 120 || y < -120 || y > H + 120) continue;
+
+      const locked = b.kind === 'level' && b.levelIndex > game.maxReachableLevel;
+      const usedMini = b.kind === 'minigame' && game.minigamesUsed[b.id];
+
+      ctx.fillStyle = locked ? 'rgba(90,90,90,0.85)' : 'rgba(142, 68, 173, 0.92)';
+      ctx.fillRect(x, y, b.w, b.h);
+      ctx.fillStyle = locked ? '#555' : '#f6e58d';
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y);
+      ctx.lineTo(x + b.w / 2, y - 26);
+      ctx.lineTo(x + b.w + 6, y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.strokeRect(x, y, b.w, b.h);
+
+      ctx.font = 'bold 14px Georgia';
+      ctx.fillStyle = locked ? 'rgba(255,255,255,0.35)' : '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.kind === 'level' ? `Lv ${b.label}` : b.label, x + b.w / 2, y + b.h / 2 + 5);
+
+      if (usedMini) {
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillText('Played', x + b.w / 2, y + b.h + 14);
+      }
+    }
+
+    const px = sx(game.ow.x);
+    const py = sy(game.ow.y);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(px, py + 18, 18, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.scale(0.42, 0.42);
+    if (game.character === 'frank') {
+      drawFrankPlayer(ctx, 0, 0, game.ow.facing, game.frame, false, false, 1, 1);
+    } else {
+      drawPrincess(ctx, 0, 0, game.ow.facing, game.frame, false, false, 1, 1);
+    }
+    ctx.restore();
+
+    ctx.font = '13px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(
+      'Paths · Jump enters towers · MAP top-right (or M / Esc) exits a level · L leaderboard',
+      W / 2,
+      H - 26
+    );
+
+    if (game.owTarget) {
+      ctx.font = 'bold 15px Georgia';
+      ctx.fillStyle = 'rgba(255, 223, 128, 0.95)';
+      if (game.owTarget.kind === 'level') {
+        ctx.fillText(`Enter Level ${game.owTarget.levelIndex + 1} — Jump`, W / 2, H - 52);
+      } else if (!game.minigamesUsed[game.owTarget.id]) {
+        ctx.fillText(`Play ${game.owTarget.label} — Jump`, W / 2, H - 52);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  renderMinigame(game) {
+    const ctx = this.ctx;
+    const m = game.mini;
+    if (!m) return;
+
+    ctx.fillStyle = '#1e1e2e';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.font = 'bold 22px Georgia';
+    ctx.fillStyle = '#feca57';
+    ctx.textAlign = 'center';
+
+    if (m.kind === 'slot') {
+      ctx.fillText('Slot Shrine', W / 2, 56);
+      ctx.font = '15px Georgia';
+      ctx.fillStyle = '#dfe6e9';
+      ctx.fillText(m.phase === 'prompt' ? 'Jump — spin the reels' : 'Good luck…', W / 2, 86);
+
+      const sym = ['♠', '♥', '★', '♦', '✦'];
+      const boxY = H / 2 - 40;
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = '#2f3542';
+        ctx.fillRect(W / 2 - 150 + i * 95, boxY, 78, 92);
+        ctx.strokeStyle = '#576574';
+        ctx.strokeRect(W / 2 - 150 + i * 95, boxY, 78, 92);
+        ctx.font = 'bold 42px Georgia';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(sym[m.reels[i] % 5], W / 2 - 111 + i * 95, boxY + 62);
+      }
+
+      if (m.phase === 'result') {
+        ctx.font = 'bold 18px Georgia';
+        ctx.fillStyle = m.win ? '#2ecc71' : '#dcdde1';
+        ctx.fillText(m.win ? 'Jackpot! +1 life' : 'Nice try — coins added', W / 2, boxY + 130);
+        ctx.font = '13px Georgia';
+        ctx.fillStyle = '#95afc0';
+        ctx.fillText('Jump — exit', W / 2, boxY + 156);
+      }
+    } else if (m.kind === 'claw') {
+      ctx.fillText('Claw Parlor', W / 2, 56);
+      ctx.font = '14px Georgia';
+      ctx.fillStyle = '#dfe6e9';
+      ctx.fillText(
+        m.phase === 'aim' ? 'Jump — drop when centered over the prize lane' : '…',
+        W / 2,
+        84
+      );
+
+      ctx.fillStyle = 'rgba(46,204,113,0.25)';
+      ctx.fillRect(W * 0.38, m.dropY - 20 + (m.phase === 'aim' ? 0 : 0), W * 0.24, 36);
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.strokeRect(W * 0.38, m.dropY - 20, W * 0.24, 36);
+
+      ctx.strokeStyle = '#feca57';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(m.x, 120);
+      ctx.lineTo(m.x, m.y);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#e84118';
+      ctx.fillRect(m.x - 16, m.y, 32, 22);
+
+      if (m.phase === 'done' || m.phase === 'lift') {
+        ctx.font = 'bold 17px Georgia';
+        ctx.fillStyle = m.win ? '#2ecc71' : '#dcdde1';
+        ctx.fillText(m.win ? 'Grabbed the royal plush!' : 'Close — keep the pity coins', W / 2, H - 120);
+      }
+    } else if (m.kind === 'hoops') {
+      ctx.fillText('Courtside Hoops', W / 2, 52);
+      ctx.font = '14px Georgia';
+      ctx.fillStyle = '#dfe6e9';
+      ctx.fillText('Jump — shoot when the meter feels right', W / 2, 78);
+
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(W - 118, 268, 34, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(W - 138, 278, 44, 8);
+
+      ctx.fillStyle = '#ffa502';
+      ctx.fillRect(40, H - 165, 220, 14);
+      ctx.fillStyle = '#ff6348';
+      ctx.fillRect(40, H - 165, 220 * m.meter, 14);
+
+      if (m.ball) {
+        ctx.fillStyle = '#ff9ff3';
+        ctx.beginPath();
+        ctx.arc(m.ball.x, m.ball.y, 11, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (m.phase === 'done') {
+        ctx.font = 'bold 17px Georgia';
+        ctx.fillStyle = m.win ? '#2ecc71' : '#dcdde1';
+        ctx.fillText(m.win ? 'Swish! Bonus royal points' : 'Bank shot banked… small prize', W / 2, H - 110);
+      }
+    }
+
+    ctx.font = '12px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText('L — exit arcade · Jump advances', W / 2, H - 20);
     ctx.textAlign = 'left';
   }
 }

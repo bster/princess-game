@@ -198,7 +198,16 @@ function darkLayers(groundY) {
   ];
 }
 
-const LAYER_BUILDERS = [meadowLayers, sunsetLayers, cavernLayers, skyLayers, darkLayers];
+const LAYER_BUILDERS = [
+  meadowLayers,
+  sunsetLayers,
+  cavernLayers,
+  skyLayers,
+  darkLayers,
+  meadowLayers,
+  sunsetLayers,
+  darkLayers,
+];
 
 // ---- Public API ----
 

@@ -10,6 +10,7 @@ export class InputManager {
     this.left = false;
     this.right = false;
     this.down = false;
+    this.up = false;
     this.jumpPressed = false;
     this.jumpEdge = false;
     this.firePressed = false;
@@ -25,6 +26,10 @@ export class InputManager {
     this.keyLEdge = false;
     this._prevKeyL = false;
     this._prevKeyC = false;
+    this.keyMEdge = false;
+    this._prevKeyM = false;
+    this.escapeEdge = false;
+    this._prevEscape = false;
 
     this._bindTouch();
     this._bindMouse();
@@ -100,6 +105,8 @@ export class InputManager {
       this._mouseDown = false;
       this.left = false;
       this.right = false;
+      this.down = false;
+      this.up = false;
       this.jumpPressed = false;
       this.firePressed = false;
     });
@@ -119,6 +126,7 @@ export class InputManager {
     this.left = false;
     this.right = false;
     this.down = false;
+    this.up = false;
     this.jumpPressed = false;
     this.firePressed = false;
     if (this._mouseDown) {
@@ -126,6 +134,7 @@ export class InputManager {
         const cx = 80,
           cy = H - 80;
         if (this._mouseY > cy + 20) this.down = true;
+        else if (this._mouseY < cy - 26) this.up = true;
         else if (this._mouseX < cx) this.left = true;
         else this.right = true;
       } else {
@@ -143,6 +152,7 @@ export class InputManager {
     this.left = false;
     this.right = false;
     this.down = false;
+    this.up = false;
     this.jumpPressed = false;
     this.firePressed = false;
     const rect = this.canvas.getBoundingClientRect();
@@ -154,6 +164,7 @@ export class InputManager {
         const cx = 80,
           cy = H - 80;
         if (ty > cy + 20) this.down = true;
+        else if (ty < cy - 26) this.up = true;
         else if (tx < cx) this.left = true;
         else this.right = true;
       } else {
@@ -171,6 +182,7 @@ export class InputManager {
     const kbLeft = !!(this._keys['ArrowLeft'] || this._keys['KeyA']);
     const kbRight = !!(this._keys['ArrowRight'] || this._keys['KeyD']);
     const kbDown = !!(this._keys['ArrowDown'] || this._keys['KeyS']);
+    const kbUp = !!(this._keys['ArrowUp'] || this._keys['KeyW']);
     const kbJump = !!this._keys['Space'];
     const kbFire = !!(this._keys['KeyX'] || this._keys['ShiftLeft'] || this._keys['ShiftRight']);
     const kbActive =
@@ -178,6 +190,7 @@ export class InputManager {
       kbRight ||
       kbJump ||
       kbDown ||
+      kbUp ||
       kbFire ||
       !!this._keys['ArrowUp'] ||
       !!this._keys['KeyW'];
@@ -186,6 +199,7 @@ export class InputManager {
       this.left = kbLeft;
       this.right = kbRight;
       this.down = kbDown;
+      this.up = kbUp;
       this.jumpPressed = kbJump;
       this.firePressed = kbFire;
     }
@@ -198,6 +212,14 @@ export class InputManager {
     const keyC = !!this._keys['KeyC'];
     this.keyCEdge = keyC && !this._prevKeyC;
     this._prevKeyC = keyC;
+
+    const keyM = !!this._keys['KeyM'];
+    this.keyMEdge = keyM && !this._prevKeyM;
+    this._prevKeyM = keyM;
+
+    const escKey = !!this._keys['Escape'];
+    this.escapeEdge = escKey && !this._prevEscape;
+    this._prevEscape = escKey;
 
     this.jumpEdge = this.jumpPressed && !this._prevJump;
     this._prevJump = this.jumpPressed;

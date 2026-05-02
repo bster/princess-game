@@ -19,6 +19,9 @@ import { MedalManager } from './medals';
 import * as ProgressSave from './progressSave';
 import { addLeaderboardEntry } from './leaderboard';
 import { hitTestTitle, hitTestLeaderboardBack } from './ui/titleLayout';
+import * as Ow from './overworld/overworldMap';
+import { createMiniState, tickMini } from './minigames/arcadeMinigames';
+import { hitTestMapExit } from './ui/mapExitUi';
 
 const POWER_FANFARE = {
   fire: {
@@ -45,8 +48,9 @@ const POWER_FANFARE = {
 
 export class Game {
   constructor() {
-    this.state = 'title'; // title, select, playing, levelComplete, gameOver, victory
+    this.state = 'title'; // title, leaderboard, overworld, minigame, playing, levelComplete, gameOver, victory
     this.levelIndex = 0;
+    this.maxReachableLevel = 0;
     this.score = 0;
     this.lives = 5;
     this.tiaraCount = 0;
@@ -89,6 +93,14 @@ export class Game {
     this.levelTotalTiaras = 0;
     this.medalResults = null;
 
+    /** @type {{ x:number, y:number, facing:number }} */
+    this.ow = { x: 220, y: 1260, facing: 1 };
+    /** @type {{ slot?:boolean, claw?:boolean, hoops?:boolean }} */
+    this.minigamesUsed = { slot: false, claw: false, hoops: false };
+    this.mini = null;
+    /** @type {null | { kind:string, levelIndex?:number, id?:string, label?:string }} */
+    this.owTarget = null;
+
     this.secretGems = [];
     this.secretsCollectedIds = [];
     this.abilityFanfare = null;
@@ -106,6 +118,12 @@ export class Game {
         break;
       case 'leaderboard':
         this._updateLeaderboard(input);
+        break;
+      case 'overworld':
+        this._updateOverworld(input);
+        break;
+      case 'minigame':
+        this._updateMinigame(input);
         break;
       case 'playing':
         this._updatePlaying(input);
@@ -175,18 +193,111 @@ export class Game {
     }
   }
 
+  _updateOverworld(input) {
+    if (input.keyLEdge) {
+      this.state = 'leaderboard';
+      return;
+    }
+
+    let dx = 0;
+    let dy = 0;
+    if (input.left) dx -= Ow.OW_SPEED;
+    if (input.right) dx += Ow.OW_SPEED;
+    if (input.up) dy -= Ow.OW_SPEED;
+    if (input.down) dy += Ow.OW_SPEED;
+
+    const rects = Ow.getOwCollisionRects();
+    this.ow = Ow.moveOwPlayer(this.ow, dx, dy, rects);
+    this.owTarget = Ow.findInteractTarget(
+      this.ow.x,
+      this.ow.y,
+      this.maxReachableLevel,
+      this.minigamesUsed
+    );
+
+    if (this.frame % 420 === 0) ProgressSave.saveRun(this._runPayload());
+
+    const go = input.jumpEdge || input.fireEdge;
+    if (go && this.owTarget) {
+      if (this.owTarget.kind === 'level') {
+        this._enterLevelFromOw(this.owTarget.levelIndex);
+      } else if (this.owTarget.id) {
+        this.mini = createMiniState(this.owTarget.id);
+        this.state = 'minigame';
+      }
+    }
+  }
+
+  _enterLevelFromOw(levelIdx) {
+    this.levelIndex = levelIdx;
+    this._initLevel(levelIdx);
+    this.state = 'playing';
+    ProgressSave.saveRun(this._runPayload());
+  }
+
+  _exitToOverworldFromLevel() {
+    const anchor = Math.min(this.levelIndex, this.maxReachableLevel);
+    const sp = Ow.spawnOwNearLevel(anchor);
+    this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+    this.levelData = null;
+    this.player = null;
+    this.enemies = [];
+    this.tiaras = [];
+    this.powerUps = [];
+    this.projectiles = [];
+    this.flag = null;
+    this.cage = null;
+    this.secretGems = [];
+    this.camera.unfreeze();
+    this.camera.x = 0;
+    this.particles.clear();
+    this.abilityFanfare = null;
+    this.freezeTimer = 0;
+    this.slowMoTimer = 0;
+    this.state = 'overworld';
+    ProgressSave.saveRun(this._runPayload());
+  }
+
+  _updateMinigame(input) {
+    if (!this.mini) {
+      this.state = 'overworld';
+      return;
+    }
+    if (input.keyLEdge) {
+      this.mini = null;
+      this.state = 'overworld';
+      return;
+    }
+    const kind = this.mini.kind;
+    const done = tickMini(this, input);
+    if (done) {
+      if (kind === 'slot') this.minigamesUsed.slot = true;
+      else if (kind === 'claw') this.minigamesUsed.claw = true;
+      else if (kind === 'hoops') this.minigamesUsed.hoops = true;
+      this.mini = null;
+      this.state = 'overworld';
+      ProgressSave.saveRun(this._runPayload());
+    }
+  }
+
   _startNewRun() {
     ProgressSave.clearRun();
     this.secretsCollectedIds = [];
     this.character = this.selectCursor === 0 ? 'princess' : 'frank';
     this.levelIndex = 0;
+    this.maxReachableLevel = 0;
     this.score = 0;
     this.lives = 5;
     this.tiaraCount = 0;
     this.nextLifeTiaras = 10;
-    this.state = 'playing';
+    this.minigamesUsed = { slot: false, claw: false, hoops: false };
+    this.state = 'overworld';
     this.abilityFanfare = null;
-    this._initLevel(0);
+    this.mini = null;
+    const sp = Ow.spawnOwNearLevel(0);
+    this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+    this.levelData = null;
+    this.player = null;
     ProgressSave.saveRun(this._runPayload());
   }
 
@@ -194,6 +305,7 @@ export class Game {
     const data = ProgressSave.loadRun();
     if (!data) return;
     this.levelIndex = data.levelIndex;
+    this.maxReachableLevel = data.maxReachableLevel ?? data.levelIndex ?? 0;
     this.lives = data.lives;
     this.score = data.score;
     this.character = data.character;
@@ -203,15 +315,30 @@ export class Game {
     this.secretsCollectedIds = Array.isArray(data.secretsCollected)
       ? data.secretsCollected.slice()
       : [];
-    this.state = 'playing';
+    this.minigamesUsed = {
+      slot: !!data.minigamesUsed?.slot,
+      claw: !!data.minigamesUsed?.claw,
+      hoops: !!data.minigamesUsed?.hoops,
+    };
+    const lc = this.levelManager.totalLevels;
+    this.maxReachableLevel = Math.max(0, Math.min(lc - 1, this.maxReachableLevel));
+    this.levelIndex = Math.max(0, Math.min(lc - 1, this.levelIndex));
+    this.state = 'overworld';
     this.abilityFanfare = null;
-    this._initLevel(this.levelIndex);
+    this.mini = null;
+    const anchor = Math.min(this.levelIndex, this.maxReachableLevel);
+    const sp = Ow.spawnOwNearLevel(anchor);
+    this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+    this.levelData = null;
+    this.player = null;
     ProgressSave.saveRun(this._runPayload());
   }
 
   _runPayload() {
     return {
       levelIndex: this.levelIndex,
+      maxReachableLevel: this.maxReachableLevel,
+      minigamesUsed: { ...this.minigamesUsed },
       lives: this.lives,
       score: this.score,
       character: this.character,
@@ -231,10 +358,14 @@ export class Game {
     this.levelCompleteTimer++;
     this.particles.update();
     if (this.levelCompleteTimer > 180 && input.jumpEdge) {
-      if (this.levelIndex < this.levelManager.totalLevels - 1) {
-        this.levelIndex++;
-        this._initLevel(this.levelIndex);
-        this.state = 'playing';
+      const total = this.levelManager.totalLevels;
+      const completed = this.levelIndex;
+      if (completed < total - 1) {
+        this.maxReachableLevel = Math.max(this.maxReachableLevel, completed + 1);
+        this.levelIndex = completed + 1;
+        const sp = Ow.spawnOwNearLevel(this.levelIndex);
+        this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+        this.state = 'overworld';
         ProgressSave.saveRun(this._runPayload());
       } else {
         this.state = 'victory';
@@ -274,6 +405,16 @@ export class Game {
   }
 
   _updatePlaying(input) {
+    const tap = input.consumeTap();
+    if (
+      this.player &&
+      !this.player.dead &&
+      ((tap && hitTestMapExit(tap.x, tap.y)) || input.keyMEdge || input.escapeEdge)
+    ) {
+      this._exitToOverworldFromLevel();
+      return;
+    }
+
     if (this.abilityFanfare && this.abilityFanfare.freezeLeft > 0) {
       this.abilityFanfare.freezeLeft--;
       this.particles.update();
@@ -558,18 +699,28 @@ export class Game {
       }
     }
 
-    // Cage check (level 5)
-    if (
-      this.cage &&
-      !this.cage.open &&
-      Math.abs(player.x - this.cage.x - 35) < 50 &&
-      player.y + player.h > this.cage.y
-    ) {
-      this.cage.open = true;
-      this._evaluateMedals();
-      this._addScore(500, this.cage.x + 35, this.cage.y);
-      this.state = 'victory';
-      this.victoryTimer = 0;
+    // Cage check (boss fortress — rescue clears stage mid-campaign)
+    if (this.cage && !this.cage.open) {
+      const boss = this.enemies.find((e) => e.type === 'boss');
+      const cageReachable = !boss || !boss.alive;
+      if (
+        cageReachable &&
+        Math.abs(player.x - this.cage.x - 35) < 50 &&
+        player.y + player.h > this.cage.y
+      ) {
+        this.cage.open = true;
+        this._evaluateMedals();
+        this._addScore(500, this.cage.x + 35, this.cage.y);
+        const total = this.levelManager.totalLevels;
+        if (this.levelIndex < total - 1) {
+          this.state = 'levelComplete';
+          this.levelCompleteTimer = 0;
+        } else {
+          this.state = 'victory';
+          this.victoryTimer = 0;
+        }
+        ProgressSave.saveRun(this._runPayload());
+      }
     }
 
     // Camera with look-ahead

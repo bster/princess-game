@@ -92,6 +92,16 @@ function render() {
       renderer.renderLeaderboard(game);
       break;
 
+    case 'overworld':
+      renderer.renderOverworld(game);
+      renderer.renderWorldHud(game);
+      break;
+
+    case 'minigame':
+      renderer.renderMinigame(game);
+      renderer.renderWorldHud(game);
+      break;
+
     case 'gameOver':
       renderer.renderGameOver(game);
       break;
