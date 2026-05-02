@@ -721,7 +721,7 @@ export class Renderer {
     ctx.font = 'bold 11px Georgia';
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     ctx.textAlign = 'center';
-    ctx.fillText('ABILITY UNLOCKED', W / 2, H * 0.32);
+    ctx.fillText('POWER-UP', W / 2, H * 0.32);
 
     ctx.font = 'bold 26px Georgia';
     ctx.fillStyle = '#fff';
@@ -739,7 +739,7 @@ export class Renderer {
     ctx.font = '13px Georgia';
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.fillText(
-      f.freezeLeft > 0 ? 'Hold still — tailoring finish…' : 'Good luck out there.',
+      f.freezeLeft > 0 ? 'Hang on…' : 'Good luck.',
       W / 2,
       H * 0.58
     );

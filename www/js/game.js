@@ -25,23 +25,23 @@ import { hitTestMapExit } from './ui/mapExitUi';
 
 const POWER_FANFARE = {
   fire: {
-    title: 'Royal Roast',
-    tagline: 'B button: lob justice. Goblins crisp evenly.',
+    title: 'Fire',
+    tagline: 'Press B to shoot fireballs.',
     color: '#FF4500',
   },
   flight: {
-    title: 'Dress Lift Protocol',
-    tagline: 'Hold jump in mid-air — gravy can wait.',
+    title: 'Flight',
+    tagline: 'Hold jump while in the air to glide.',
     color: '#87CEEB',
   },
   shield: {
-    title: 'Bubble of Bureaucracy',
-    tagline: 'Three hits rejected pending review.',
+    title: 'Shield',
+    tagline: 'Blocks several hits before it wears off.',
     color: '#4169E1',
   },
   growth: {
-    title: 'Tea-Time Growth Spurt',
-    tagline: '+1 heart. Stomp print enlarges.',
+    title: 'Growth',
+    tagline: 'For a limited time: +1 HP and a larger hitbox.',
     color: '#32CD32',
   },
 };
