@@ -1,0 +1,8 @@
+{
+  "appId": "com.bstern.princessandfrank",
+  "appName": "Princess and Frank",
+  "webDir": "www",
+  "ios": {
+    "backgroundColor": "#000000"
+  }
+}
