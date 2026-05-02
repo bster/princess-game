@@ -15,9 +15,12 @@ import { drawShooterEnemy } from './sprites/shooterEnemy.js';
 import { drawBoss } from './sprites/boss.js';
 import { drawFrank, drawFrankPlayer } from './sprites/frank.js';
 import { drawCloud, drawBush, drawTree, drawCastleBg, drawCrystal, drawTorch, drawRuins, drawFlag, drawCage, drawBarrier } from './sprites/environment.js';
-import { drawStar, drawHeart, drawFireball, drawEnemyShot, drawShieldBubble, drawWings } from './sprites/effects.js';
+import { drawStar, drawHeart, drawFireball, drawEnemyShot, drawShieldBubble, drawWings, drawSecretGem } from './sprites/effects.js';
 import { drawTiara } from './sprites/tiara.js';
 import { drawPowerUpOrb, drawAbilityHUD } from './sprites/powerupIcons.js';
+import { hasRunSave } from './progressSave.js';
+import { getLeaderboardTop } from './leaderboard.js';
+import { getTitleUi } from './ui/titleLayout.js';
 
 export class Renderer {
   constructor(ctx) {
@@ -218,6 +221,14 @@ export class Renderer {
       drawPowerUpOrb(ctx, px, p.y, p.type, p.frame);
     }
 
+    // Secret gems (explore crawl tunnels & risky air pockets)
+    for (const g of game.secretGems) {
+      if (g.collected) continue;
+      const gx = g.x - camX;
+      if (gx > W + 24 || gx < -24) continue;
+      drawSecretGem(ctx, gx, g.y, g.frame, g.reveal);
+    }
+
     // Flag
     if (game.flag) {
       drawFlag(ctx, game.flag.x - camX, game.flag.y, game.flag.reachedFrame || 0);
@@ -273,6 +284,8 @@ export class Renderer {
         }
       } else if (en.squishTimer > 0) {
         if (en.subtype === 'slime') drawSlime(ctx, ex, en.y + 12, en.frame, true);
+        else if (en.subtype === 'flying') drawFlyingEnemy(ctx, ex, en.y + 12, en.frame, true);
+        else if (en.subtype === 'shooter') drawShooterEnemy(ctx, ex, en.y + 16, en.frame, en.facing, true);
         else if (en.subtype === 'boss') drawBoss(ctx, ex, en.y, en.frame, en.phase, 0, en.maxHp, true, en.facing);
         else drawGoblin(ctx, ex, en.y + 20, en.frame, true);
       }
@@ -456,6 +469,14 @@ export class Renderer {
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
+
+    if (game.stompChain > 1 && game.stompChainTimer > 0) {
+      ctx.font = 'bold 13px Georgia';
+      ctx.fillStyle = '#FFD700';
+      ctx.textAlign = 'right';
+      ctx.fillText(`STOMP ×${game.stompChain}`, W - 20, hudY + 26);
+    }
+
     ctx.textAlign = 'left';
 
     // Level name
@@ -568,104 +589,145 @@ export class Renderer {
     ctx.globalAlpha = 1;
   }
 
-  renderTitle(game) {
-    const frame = game.frame;
+  renderAbilityFanfare(game) {
+    const f = game.abilityFanfare;
+    if (!f || (f.timer <= 0 && f.freezeLeft <= 0)) return;
     const ctx = this.ctx;
+    const t = f.timer / 105;
+    const alpha = Math.min(1, (105 - f.timer) / 18) * (0.35 + 0.45 * (1 - t * 0.5));
 
-    // Background
+    ctx.save();
+    ctx.fillStyle = `rgba(8,6,24,${alpha * 0.92})`;
+    ctx.fillRect(0, 0, W, H);
+
+    const ring = ctx.createRadialGradient(W / 2, H * 0.42, 20, W / 2, H * 0.42, 220);
+    ring.addColorStop(0, (f.color || '#fff') + '44');
+    ring.addColorStop(1, 'transparent');
+    ctx.fillStyle = ring;
+    ctx.beginPath();
+    ctx.arc(W / 2, H * 0.42, 240, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = f.color || '#fff';
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(W / 2, H * 0.42, 72 + Math.sin(game.frame * 0.12) * 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    ctx.font = 'bold 11px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.textAlign = 'center';
+    ctx.fillText('ABILITY UNLOCKED', W / 2, H * 0.32);
+
+    ctx.font = 'bold 26px Georgia';
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 8;
+    ctx.fillText(f.title, W / 2, H * 0.40);
+    ctx.shadowBlur = 0;
+
+    ctx.font = '15px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    const words = f.tagline;
+    const maxW = W - 48;
+    this._wrapText(ctx, words, W / 2, H * 0.46, maxW, 20);
+
+    ctx.font = '13px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText(f.freezeLeft > 0 ? 'Hold still — tailoring finish…' : 'Good luck out there.', W / 2, H * 0.58);
+
+    ctx.restore();
+  }
+
+  _wrapText(ctx, text, cx, startY, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let y = startY;
+    for (let i = 0; i < words.length; i++) {
+      const test = line + words[i] + ' ';
+      if (ctx.measureText(test).width > maxWidth && line.length > 0) {
+        ctx.fillText(line.trim(), cx, y);
+        line = words[i] + ' ';
+        y += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line.trim(), cx, y);
+  }
+
+  renderLeaderboard(game) {
+    const ctx = this.ctx;
+    const rows = getLeaderboardTop(12);
+
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#1a5276');
-    grad.addColorStop(0.3, '#2e86c1');
-    grad.addColorStop(0.6, '#85c1e9');
-    grad.addColorStop(1, '#d6eaf8');
+    grad.addColorStop(0, '#0f0820');
+    grad.addColorStop(1, '#2d1b50');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // Sun
-    const tsg = ctx.createRadialGradient(310, 100, 10, 310, 100, 100);
-    tsg.addColorStop(0, 'rgba(255,250,220,0.4)');
-    tsg.addColorStop(0.5, 'rgba(255,240,200,0.1)');
-    tsg.addColorStop(1, 'rgba(255,230,180,0)');
-    ctx.fillStyle = tsg;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(255,250,230,0.9)';
-    ctx.beginPath();
-    ctx.arc(310, 100, 25, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Clouds
-    drawCloud(ctx, 60, 120, 80);
-    drawCloud(ctx, 250, 90, 60);
-    drawCloud(ctx, 340, 160, 70);
-
-    // Ground
-    ctx.fillStyle = '#E8C252';
-    ctx.fillRect(0, H - 150, W, 4);
-    ctx.fillStyle = this.brickPattern;
-    ctx.fillRect(0, H - 146, W, 146);
-
-    // Princess
-    drawPrincess(ctx, W * 0.35, H - 150, 1, frame, false);
-
-    // Caged Frank
-    drawCage(ctx, W * 0.55, H - 230, false);
-    drawFrank(ctx, W * 0.55 + 35, H - 175, frame, false);
-
-    // Goblins
-    drawGoblin(ctx, W * 0.15, H - 188, frame, false);
-    drawGoblin(ctx, W * 0.85, H - 188, frame, false);
-
-    // Title
-    const pulse = 1 + Math.sin(frame * 0.03) * 0.05;
-    ctx.save();
-    ctx.translate(W / 2, 200);
-    ctx.scale(pulse, pulse);
-    ctx.font = 'bold 42px Georgia';
+    ctx.font = 'bold 28px Georgia';
     ctx.fillStyle = C.crown;
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#c0392b';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
-    ctx.fillText('Princess', 0, 0);
-    ctx.fillText('& Frank', 0, 48);
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.restore();
+    ctx.fillText('Hall of Fame', W / 2, 56);
 
-    // Subtitle
-    ctx.font = '18px Georgia';
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.fillText('Save Frank the Pug!', W / 2, 280);
+    ctx.font = '13px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText('Local highs · this device', W / 2, 78);
 
-    // Tap to start
-    if (Math.sin(frame * 0.08) > 0) {
-      ctx.font = 'bold 22px Georgia';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('Tap to Start', W / 2, H / 2 + 60);
-    }
-
-    // Medal progress (only if player has earned at least 1)
-    const earned = game.medalManager.getTotalEarned();
-    if (earned > 0) {
-      const total = game.medalManager.getTotalPossible();
-      const medalY = H / 2 + 100;
-      drawStar(ctx, W / 2 - 40, medalY, 10, '#FFD700');
+    let y = 118;
+    if (!rows.length) {
       ctx.font = '16px Georgia';
-      ctx.fillStyle = earned >= total ? '#FFD700' : 'rgba(255,215,0,0.8)';
-      ctx.fillText(earned + ' / ' + total, W / 2 + 5, medalY + 5);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('No scores yet — beat a level!', W / 2, H / 2);
+    } else {
+      ctx.font = 'bold 14px Georgia';
+      ctx.fillStyle = 'rgba(255,215,0,0.65)';
+      ctx.textAlign = 'left';
+      ctx.fillText('#', 36, y);
+      ctx.fillText('Hero', 62, y);
+      ctx.textAlign = 'right';
+      ctx.fillText('Score', W - 36, y);
+      y += 22;
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.beginPath();
+      ctx.moveTo(28, y);
+      ctx.lineTo(W - 28, y);
+      ctx.stroke();
+
+      y += 18;
+      ctx.font = '15px Georgia';
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        ctx.textAlign = 'left';
+        ctx.fillStyle = i < 3 ? '#FFD700' : 'rgba(255,255,255,0.88)';
+        ctx.fillText(String(i + 1), 36, y);
+        const tag = r.character === 'frank' ? '[F]' : '[P]';
+        ctx.fillText(tag + ' ' + r.name, 62, y);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.fillText(String(r.score), W - 36, y);
+        y += 30;
+      }
     }
+
+    ctx.textAlign = 'center';
+    ctx.font = '15px Georgia';
+    ctx.fillStyle = Math.sin(game.frame * 0.08) > 0 ? '#fff' : 'rgba(255,255,255,0.55)';
+    ctx.fillText('Tap Back to return', W / 2, H - 44);
 
     ctx.textAlign = 'left';
   }
 
-  renderCharacterSelect(game) {
-    const ctx = this.ctx;
+  renderTitle(game) {
     const frame = game.frame;
+    const ctx = this.ctx;
+    const hasSave = hasRunSave();
+    const ui = getTitleUi(hasSave);
     const cursor = game.selectCursor;
 
-    // Background
     const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, '#1a5276');
     grad.addColorStop(0.3, '#2e86c1');
@@ -674,115 +736,132 @@ export class Renderer {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // Sun
-    const tsg = ctx.createRadialGradient(310, 100, 10, 310, 100, 100);
-    tsg.addColorStop(0, 'rgba(255,250,220,0.4)');
-    tsg.addColorStop(0.5, 'rgba(255,240,200,0.1)');
+    const tsg = ctx.createRadialGradient(310, 85, 10, 310, 85, 100);
+    tsg.addColorStop(0, 'rgba(255,250,220,0.35)');
     tsg.addColorStop(1, 'rgba(255,230,180,0)');
     ctx.fillStyle = tsg;
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = 'rgba(255,250,230,0.9)';
     ctx.beginPath();
-    ctx.arc(310, 100, 25, 0, Math.PI * 2);
+    ctx.arc(310, 85, 22, 0, Math.PI * 2);
     ctx.fill();
 
-    // Clouds
-    drawCloud(ctx, 60, 120, 80);
-    drawCloud(ctx, 250, 90, 60);
-    drawCloud(ctx, 340, 160, 70);
+    drawCloud(ctx, 40, 95, 70);
+    drawCloud(ctx, 260, 72, 55);
+    drawCloud(ctx, 330, 125, 65);
 
-    // Ground
     ctx.fillStyle = '#E8C252';
-    ctx.fillRect(0, H - 150, W, 4);
+    ctx.fillRect(0, H - 118, W, 3);
     ctx.fillStyle = this.brickPattern;
-    ctx.fillRect(0, H - 146, W, 146);
+    ctx.fillRect(0, H - 115, W, 115);
 
-    // Title
-    ctx.font = 'bold 32px Georgia';
+    drawGoblin(ctx, W * 0.08, H - 156, frame, false);
+    drawGoblin(ctx, W * 0.92, H - 156, frame, false);
+
+    const pulse = 1 + Math.sin(frame * 0.03) * 0.04;
+    ctx.save();
+    ctx.translate(W / 2, 132);
+    ctx.scale(pulse, pulse);
+    ctx.font = 'bold 36px Georgia';
     ctx.fillStyle = C.crown;
     ctx.textAlign = 'center';
     ctx.shadowColor = '#c0392b';
-    ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
-    ctx.fillText('Choose Your Hero', W / 2, 160);
+    ctx.fillText('Princess', 0, 0);
+    ctx.fillText('& Frank', 0, 40);
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
+    ctx.restore();
 
-    // Two character panels
-    const panelW = 140, panelH = 200;
-    const panelY = 220;
-    const leftX = W / 2 - panelW - 15;
-    const rightX = W / 2 + 15;
+    ctx.font = '14px Georgia';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText('Tap a hero · crawl for purple gems · stomp chains score big', W / 2, 178);
 
-    // Selection highlight
-    for (let i = 0; i < 2; i++) {
-      const px = i === 0 ? leftX : rightX;
-      const selected = cursor === i;
-      const pulse = selected ? 1 + Math.sin(frame * 0.08) * 0.03 : 1;
-
+    const drawHeroPanel = (r, selected, drawStuff) => {
+      const ps = selected ? 1 + Math.sin(frame * 0.08) * 0.035 : 1;
       ctx.save();
-      ctx.translate(px + panelW / 2, panelY + panelH / 2);
-      ctx.scale(pulse, pulse);
-      ctx.translate(-(px + panelW / 2), -(panelY + panelH / 2));
-
-      // Panel bg
+      ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
+      ctx.scale(ps, ps);
+      ctx.translate(-(r.x + r.w / 2), -(r.y + r.h / 2));
       if (selected) {
-        ctx.fillStyle = 'rgba(255,215,0,0.25)';
+        ctx.fillStyle = 'rgba(255,215,0,0.28)';
         ctx.strokeStyle = C.crown;
         ctx.lineWidth = 3;
       } else {
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillStyle = 'rgba(255,255,255,0.07)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
         ctx.lineWidth = 2;
       }
       ctx.beginPath();
-      ctx.roundRect(px, panelY, panelW, panelH, 12);
+      ctx.roundRect(r.x, r.y, r.w, r.h, 12);
       ctx.fill();
       ctx.stroke();
-
       ctx.restore();
-    }
+      drawStuff();
+    };
 
-    // Draw Princess (left panel)
-    drawPrincess(ctx, leftX + panelW / 2, panelY + panelH - 40, 1, frame, false);
-    ctx.font = 'bold 16px Georgia';
-    ctx.fillStyle = cursor === 0 ? '#fff' : 'rgba(255,255,255,0.6)';
+    drawHeroPanel(ui.princessPanel, cursor === 0, () => {
+      drawPrincess(ctx, ui.princessPanel.x + ui.princessPanel.w / 2, ui.princessPanel.y + ui.princessPanel.h - 36, 1, frame, false);
+      ctx.font = 'bold 15px Georgia';
+      ctx.fillStyle = cursor === 0 ? '#fff' : 'rgba(255,255,255,0.55)';
+      ctx.textAlign = 'center';
+      ctx.fillText('Princess', ui.princessPanel.x + ui.princessPanel.w / 2, ui.princessPanel.y + ui.princessPanel.h - 8);
+    });
+
+    drawHeroPanel(ui.frankPanel, cursor === 1, () => {
+      drawFrank(ctx, ui.frankPanel.x + ui.frankPanel.w / 2 - 10, ui.frankPanel.y + ui.frankPanel.h - 52, frame, true);
+      ctx.font = 'bold 15px Georgia';
+      ctx.fillStyle = cursor === 1 ? '#fff' : 'rgba(255,255,255,0.55)';
+      ctx.textAlign = 'center';
+      ctx.fillText('Frank', ui.frankPanel.x + ui.frankPanel.w / 2, ui.frankPanel.y + ui.frankPanel.h - 8);
+    });
+
     ctx.textAlign = 'center';
-    ctx.fillText('Princess', leftX + panelW / 2, panelY + panelH - 10);
+    ctx.font = '13px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText(cursor === 0 ? 'Mission: rescue Frank' : 'Mission: rescue the Princess', W / 2, ui.princessPanel.y + ui.princessPanel.h + 22);
 
-    // Draw Frank (right panel)
-    drawFrank(ctx, rightX + panelW / 2 - 10, panelY + panelH - 55, frame, true);
-    ctx.font = 'bold 16px Georgia';
-    ctx.fillStyle = cursor === 1 ? '#fff' : 'rgba(255,255,255,0.6)';
-    ctx.textAlign = 'center';
-    ctx.fillText('Frank', rightX + panelW / 2, panelY + panelH - 10);
-
-    // Mission text
-    ctx.font = '16px Georgia';
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    if (cursor === 0) {
-      ctx.fillText('Rescue Frank the Pug!', W / 2, panelY + panelH + 40);
-    } else {
-      ctx.fillText('Rescue the Princess!', W / 2, panelY + panelH + 40);
-    }
-
-    // Navigation hint
-    ctx.font = '14px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.fillText('\u25C0  \u25B6  to choose', W / 2, panelY + panelH + 70);
-
-    // Confirm hint
-    if (Math.sin(frame * 0.08) > 0) {
-      ctx.font = 'bold 20px Georgia';
+    const drawBtn = (b, label, sub, accent) => {
+      ctx.fillStyle = accent ? 'rgba(46,204,113,0.35)' : 'rgba(255,255,255,0.12)';
+      ctx.strokeStyle = accent ? 'rgba(46,204,113,0.9)' : 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(b.x, b.y, b.w, b.h, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.font = 'bold 17px Georgia';
       ctx.fillStyle = '#fff';
-      ctx.fillText('Press A to Start', W / 2, panelY + panelH + 110);
+      ctx.textAlign = 'center';
+      ctx.fillText(label, b.x + b.w / 2, b.y + 26);
+      if (sub) {
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillText(sub, b.x + b.w / 2, b.y + 38);
+      }
+    };
+
+    for (const b of ui.buttons) {
+      if (b.id === 'continue') drawBtn(b, 'Continue run', 'Saved progress · lives left', true);
+      else if (b.id === 'newGame') drawBtn(b, 'New adventure', hasSave ? 'Replaces saved run' : 'Start world 1', false);
+      else if (b.id === 'leaderboard') drawBtn(b, 'Leaderboard', 'Local hall of fame', false);
     }
 
-    // Goblins
-    drawGoblin(ctx, W * 0.1, H - 188, frame, false);
-    drawGoblin(ctx, W * 0.9, H - 188, frame, false);
+    ctx.textAlign = 'center';
+    ctx.font = '12px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('Keys: arrows pick hero · Space new game · C continue · L board', W / 2, H - 22);
+
+    const earned = game.medalManager.getTotalEarned();
+    if (earned > 0) {
+      const total = game.medalManager.getTotalPossible();
+      const medalY = H - 52;
+      drawStar(ctx, W / 2 - 36, medalY, 8, '#FFD700');
+      ctx.font = '13px Georgia';
+      ctx.fillStyle = earned >= total ? '#FFD700' : 'rgba(255,215,0,0.75)';
+      ctx.fillText(earned + ' / ' + total + ' medals', W / 2 + 12, medalY + 4);
+    }
 
     ctx.textAlign = 'left';
   }
@@ -905,9 +984,9 @@ export class Renderer {
 
     if (game.gameOverTimer > 60) {
       if (Math.sin(game.frame * 0.08) > 0) {
-        ctx.font = '20px Georgia';
+        ctx.font = '18px Georgia';
         ctx.fillStyle = '#fff';
-        ctx.fillText('Tap to Retry', W / 2, H * 0.55);
+        ctx.fillText('Tap — save score & return to title', W / 2, H * 0.58);
       }
     }
 

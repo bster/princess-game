@@ -69,6 +69,10 @@ export const ENEMY_HP = {
 export const BOSS_PHASE1_HP = 5; // transitions at 5
 export const BOSS_PHASE2_HP = 2; // transitions at 2
 
+// Collectibles
+export const SECRET_GEM_SCORE = 175;
+export const STOMP_CHAIN_BONUS = 40;
+
 // --- Graphics tunables ---
 
 // Parallax

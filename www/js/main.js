@@ -84,8 +84,8 @@ function render() {
       renderer.renderTitle(game);
       break;
 
-    case 'select':
-      renderer.renderCharacterSelect(game);
+    case 'leaderboard':
+      renderer.renderLeaderboard(game);
       break;
 
     case 'gameOver':
@@ -102,6 +102,7 @@ function render() {
         renderer.renderVictory(game);
       }
       renderer.renderHUD(game);
+      renderer.renderAbilityFanfare(game);
       if (game.state === 'playing' && !game.player.dead) {
         renderer.renderControls();
       }

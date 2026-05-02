@@ -2,7 +2,7 @@
 // GAME — State machine, orchestration
 // ============================================================
 
-import { STOMP_BOUNCE, H } from './constants.js';
+import { H, SECRET_GEM_SCORE, STOMP_CHAIN_BONUS } from './constants.js';
 import { rectsOverlap } from './utils.js';
 import { Camera } from './camera.js';
 import { ParticleSystem } from './particles.js';
@@ -16,6 +16,16 @@ import { FlightAbility } from './abilities/flightAbility.js';
 import { ShieldAbility } from './abilities/shieldAbility.js';
 import { GrowthAbility } from './abilities/growthAbility.js';
 import { MedalManager } from './medals.js';
+import * as ProgressSave from './progressSave.js';
+import { addLeaderboardEntry } from './leaderboard.js';
+import { hitTestTitle, hitTestLeaderboardBack } from './ui/titleLayout.js';
+
+const POWER_FANFARE = {
+  fire: { title: 'Royal Roast', tagline: 'B button: lob justice. Goblins crisp evenly.', color: '#FF4500' },
+  flight: { title: 'Dress Lift Protocol', tagline: 'Hold jump in mid-air — gravy can wait.', color: '#87CEEB' },
+  shield: { title: 'Bubble of Bureaucracy', tagline: 'Three hits rejected pending review.', color: '#4169E1' },
+  growth: { title: 'Tea-Time Growth Spurt', tagline: '+1 heart. Stomp print enlarges.', color: '#32CD32' },
+};
 
 export class Game {
   constructor() {
@@ -62,6 +72,12 @@ export class Game {
     this.levelTiarasCollected = 0;
     this.levelTotalTiaras = 0;
     this.medalResults = null;
+
+    this.secretGems = [];
+    this.secretsCollectedIds = [];
+    this.abilityFanfare = null;
+    this.stompChain = 0;
+    this.stompChainTimer = 0;
   }
 
   update(input) {
@@ -70,7 +86,7 @@ export class Game {
 
     switch (this.state) {
       case 'title': this._updateTitle(input); break;
-      case 'select': this._updateSelect(input); break;
+      case 'leaderboard': this._updateLeaderboard(input); break;
       case 'playing': this._updatePlaying(input); break;
       case 'levelComplete': this._updateLevelComplete(input); break;
       case 'gameOver': this._updateGameOver(input); break;
@@ -79,31 +95,106 @@ export class Game {
   }
 
   _updateTitle(input) {
-    if (input.jumpEdge || input.left || input.right) {
-      this.state = 'select';
-      this.selectCursor = 0;
+    const hasSave = ProgressSave.hasRunSave();
+    const tap = input.consumeTap();
+    let handled = false;
+
+    if (tap) {
+      const hit = hitTestTitle(tap.x, tap.y, hasSave);
+      if (hit === 'princess') {
+        this.selectCursor = 0;
+        this.character = 'princess';
+        handled = true;
+      } else if (hit === 'frank') {
+        this.selectCursor = 1;
+        this.character = 'frank';
+        handled = true;
+      } else if (hit === 'continue' && hasSave) {
+        this._continueRun();
+        handled = true;
+      } else if (hit === 'newGame') {
+        this._startNewRun();
+        handled = true;
+      } else if (hit === 'leaderboard') {
+        this.state = 'leaderboard';
+        handled = true;
+      }
+    }
+
+    if (!handled) {
+      if (input.left && this.selectCursor !== 0) {
+        this.selectCursor = 0;
+        this.character = 'princess';
+      }
+      if (input.right && this.selectCursor !== 1) {
+        this.selectCursor = 1;
+        this.character = 'frank';
+      }
+      if (hasSave && input.keyCEdge) this._continueRun();
+      else if (input.jumpEdge || input.fireEdge) this._startNewRun();
+      if (input.keyLEdge) this.state = 'leaderboard';
     }
   }
 
-  _updateSelect(input) {
-    // Left/right to toggle character
-    if (input.left && this.selectCursor !== 0) {
-      this.selectCursor = 0;
-    } else if (input.right && this.selectCursor !== 1) {
-      this.selectCursor = 1;
+  _updateLeaderboard(input) {
+    const tap = input.consumeTap();
+    if (tap && hitTestLeaderboardBack(tap.x, tap.y)) {
+      this.state = 'title';
+      return;
     }
+    if (input.jumpEdge || input.fireEdge || input.keyLEdge) {
+      this.state = 'title';
+    }
+  }
 
-    // Jump/tap/fire to confirm
-    if (input.jumpEdge || input.fireEdge) {
-      this.character = this.selectCursor === 0 ? 'princess' : 'frank';
-      this.state = 'playing';
-      this.levelIndex = 0;
-      this.score = 0;
-      this.lives = 5;
-      this.tiaraCount = 0;
-      this.nextLifeTiaras = 10;
-      this._initLevel(0);
-    }
+  _startNewRun() {
+    ProgressSave.clearRun();
+    this.secretsCollectedIds = [];
+    this.character = this.selectCursor === 0 ? 'princess' : 'frank';
+    this.levelIndex = 0;
+    this.score = 0;
+    this.lives = 5;
+    this.tiaraCount = 0;
+    this.nextLifeTiaras = 10;
+    this.state = 'playing';
+    this.abilityFanfare = null;
+    this._initLevel(0);
+    ProgressSave.saveRun(this._runPayload());
+  }
+
+  _continueRun() {
+    const data = ProgressSave.loadRun();
+    if (!data) return;
+    this.levelIndex = data.levelIndex;
+    this.lives = data.lives;
+    this.score = data.score;
+    this.character = data.character;
+    this.selectCursor = data.character === 'frank' ? 1 : 0;
+    this.tiaraCount = data.tiaraCount ?? 0;
+    this.nextLifeTiaras = data.nextLifeTiaras ?? 10;
+    this.secretsCollectedIds = Array.isArray(data.secretsCollected) ? data.secretsCollected.slice() : [];
+    this.state = 'playing';
+    this.abilityFanfare = null;
+    this._initLevel(this.levelIndex);
+    ProgressSave.saveRun(this._runPayload());
+  }
+
+  _runPayload() {
+    return {
+      levelIndex: this.levelIndex,
+      lives: this.lives,
+      score: this.score,
+      character: this.character,
+      tiaraCount: this.tiaraCount,
+      nextLifeTiaras: this.nextLifeTiaras,
+      secretsCollected: this.secretsCollectedIds.slice(),
+    };
+  }
+
+  _persistRunIfPlaying() {
+    if (this.state !== 'playing') return;
+    if (!this.player || this.player.dead) return;
+    ProgressSave.saveRun(this._runPayload());
   }
 
   _updateLevelComplete(input) {
@@ -114,6 +205,7 @@ export class Game {
         this.levelIndex++;
         this._initLevel(this.levelIndex);
         this.state = 'playing';
+        ProgressSave.saveRun(this._runPayload());
       } else {
         this.state = 'victory';
         this.victoryTimer = 0;
@@ -123,8 +215,15 @@ export class Game {
 
   _updateGameOver(input) {
     this.gameOverTimer++;
-    if (this.gameOverTimer > 120 && input.jumpEdge) {
+    if (this.gameOverTimer > 85 && input.jumpEdge && !this._gameOverPrompted) {
+      this._gameOverPrompted = true;
+      const name = window.prompt('Save this score to the leaderboard?', 'Hero');
+      if (name !== null) {
+        addLeaderboardEntry(name, this.score, this.character);
+      }
+      ProgressSave.clearRun();
       this.state = 'title';
+      this._gameOverPrompted = false;
     }
   }
 
@@ -135,11 +234,22 @@ export class Game {
       this.particles.spawnVictoryHearts(this.player.x, this.player.y - 40);
     }
     if (this.victoryTimer > 180 && input.jumpEdge) {
+      const name = window.prompt('Save victory score to the leaderboard?', 'Champion');
+      if (name !== null) {
+        addLeaderboardEntry(name, this.score, this.character);
+      }
+      ProgressSave.clearRun();
       this.state = 'title';
     }
   }
 
   _updatePlaying(input) {
+    if (this.abilityFanfare && this.abilityFanfare.freezeLeft > 0) {
+      this.abilityFanfare.freezeLeft--;
+      this.particles.update();
+      return;
+    }
+
     // Hit freeze — skip physics but still render
     if (this.freezeTimer > 0) {
       this.freezeTimer--;
@@ -151,6 +261,18 @@ export class Game {
       this.slowMoTimer--;
       if (this.frame % 2 !== 0) return; // skip every other frame for slow-mo
     }
+
+    if (this.abilityFanfare && this.abilityFanfare.freezeLeft <= 0 && this.abilityFanfare.timer > 0) {
+      this.abilityFanfare.timer--;
+      if (this.abilityFanfare.timer <= 0) this.abilityFanfare = null;
+    }
+
+    if (this.stompChainTimer > 0) {
+      this.stompChainTimer--;
+      if (this.stompChainTimer <= 0) this.stompChain = 0;
+    }
+
+    if (this.frame % 480 === 0) this._persistRunIfPlaying();
 
     this.levelTimer++;
 
@@ -168,6 +290,7 @@ export class Game {
           this.gameOverTimer = 0;
         } else {
           this._initLevel(this.levelIndex);
+          ProgressSave.saveRun(this._runPayload());
         }
       }
       return;
@@ -237,6 +360,7 @@ export class Game {
           );
           proj.gravity = 0;
           this.projectiles.push(proj);
+          en.shotRequested = false;
         }
       } else if (en.type === 'boss') {
         en.update(player.x);
@@ -260,9 +384,10 @@ export class Game {
         continue;
       }
 
-      // Off screen
+      // Off screen / out of level (avoid camera-only bounds — long levels need wider span)
+      const lvW = this.levelData.width;
       if (proj.y > H + 50 || proj.y < -50 ||
-          proj.x < this.camera.x - 50 || proj.x > this.camera.x + 500) {
+          proj.x < -100 || proj.x > lvW + 120) {
         this.projectiles.splice(i, 1);
         continue;
       }
@@ -289,6 +414,8 @@ export class Game {
           const px = player.x - player.w / 2;
           if (rectsOverlap(px, player.y, player.w, player.h,
                            proj.x - proj.w / 2, proj.y - proj.h / 2, proj.w, proj.h)) {
+            this.stompChain = 0;
+            this.stompChainTimer = 0;
             this.levelHitsTaken++;
             const died = player.kill();
             if (died) {
@@ -328,6 +455,27 @@ export class Game {
           this.nextLifeTiaras += 10;
           this.particles.createText(t.x, t.y - 50, '1UP!');
         }
+        this._persistRunIfPlaying();
+      }
+    }
+
+    // Secret gems — tucked into crawl tunnels & aerial gaps (bonus score)
+    for (const g of this.secretGems) {
+      if (g.collected) continue;
+      g.update();
+      const px = player.x - player.w / 2;
+      if (rectsOverlap(px, player.y, player.w, player.h, g.x - 11, g.y - 9, 22, 18)) {
+        g.collected = true;
+        if (!this.secretsCollectedIds.includes(g.id)) {
+          this.secretsCollectedIds.push(g.id);
+        }
+        this.score += SECRET_GEM_SCORE;
+        this.particles.createText(g.x, g.y - 28, '+' + SECRET_GEM_SCORE, '#DA70D6');
+        this.particles.createText(g.x, g.y - 48, 'SECRET GEM!', '#E8D7FF');
+        this.particles.spawnPowerUp(g.x, g.y, '#9932CC');
+        this.camera.shake(4, 8);
+        this.audio.play('powerup');
+        ProgressSave.saveRun(this._runPayload());
       }
     }
 
@@ -350,6 +498,7 @@ export class Game {
           this._evaluateMedals();
           this.state = 'levelComplete';
           this.levelCompleteTimer = 0;
+          ProgressSave.saveRun(this._runPayload());
         }
       } else if (Math.abs(player.x - this.flag.x) < 30 &&
                  player.y + player.h > this.flag.y - 140) {
@@ -393,6 +542,14 @@ export class Game {
       const killed = enemy.takeDamage(1);
       player.stomp();
       if (killed) {
+        if (this.stompChainTimer > 0) this.stompChain++;
+        else this.stompChain = 1;
+        this.stompChainTimer = 78;
+        const chainBonus = (this.stompChain - 1) * STOMP_CHAIN_BONUS;
+        if (chainBonus > 0) {
+          this.score += chainBonus;
+          this.particles.createText(enemy.x, enemy.y - 44, `Stomp ×${this.stompChain} +${chainBonus}`, '#FFD700');
+        }
         this._addScore(100, enemy.x, enemy.y);
         this.particles.spawnStomp(enemy.x, enemy.y);
         this.camera.shake(5, 8);
@@ -410,6 +567,8 @@ export class Game {
     }
 
     // Player hit
+    this.stompChain = 0;
+    this.stompChainTimer = 0;
     this.levelHitsTaken++;
     const died = player.kill();
     if (died) {
@@ -429,6 +588,7 @@ export class Game {
 
   _handleBossActions(boss) {
     if (boss.summonRequested) {
+      boss.summonRequested = false;
       // Spawn 2 minion goblins
       for (let i = 0; i < 2; i++) {
         const sx = boss.x + (i === 0 ? -80 : 80);
@@ -436,6 +596,7 @@ export class Game {
           sx, this.levelData.groundY - 38, 40, 38,
           'goblin', 60, 1.5
         );
+        minion.startX = sx;
         this.enemies.push(minion);
       }
       this.camera.shake(6, 10);
@@ -445,6 +606,8 @@ export class Game {
       // Shockwave: damage player if on ground near boss
       const player = this.player;
       if (player.onGround && Math.abs(player.x - boss.x) < 150 && !player.dead && player.invincible <= 0) {
+        this.stompChain = 0;
+        this.stompChainTimer = 0;
         this.levelHitsTaken++;
         const died = player.kill();
         if (died) {
@@ -464,9 +627,11 @@ export class Game {
           '#FFD700', 20, 4, 'star'
         );
       }
+      boss.slamRequested = false;
     }
 
     if (boss.throwRequested) {
+      boss.throwRequested = false;
       // Throw hammer as projectile
       const proj = new Projectile(
         boss.x + boss.facing * 30, boss.y + 10,
@@ -492,6 +657,17 @@ export class Game {
     this.player.addAbility(ability);
     this._addScore(200, powerUp.x, powerUp.y);
 
+    const meta = POWER_FANFARE[type];
+    if (meta) {
+      this.abilityFanfare = {
+        freezeLeft: 22,
+        timer: 105,
+        title: meta.title,
+        tagline: meta.tagline,
+        color: meta.color,
+      };
+    }
+
     // Color based on type
     const colors = { fire: '#FF4500', flight: '#87CEEB', shield: '#4169E1', growth: '#32CD32' };
     this.particles.spawnPowerUp(powerUp.x, powerUp.y, colors[type] || '#fff');
@@ -501,6 +677,8 @@ export class Game {
 
   _killPlayer() {
     if (this.player.dead || this.player.invincible > 0) return;
+    this.stompChain = 0;
+    this.stompChainTimer = 0;
     this.levelHitsTaken++;
     const died = this.player.kill();
     if (died) {
@@ -532,6 +710,7 @@ export class Game {
     this.enemies = this.levelManager.createEnemies();
     this.tiaras = this.levelManager.createTiaras();
     this.powerUps = this.levelManager.createPowerUps();
+    this.secretGems = this.levelManager.createSecretGems(n, this.secretsCollectedIds);
     this.projectiles = [];
     this.flag = this.levelManager.createFlag();
     this.cage = this.levelManager.createCage();

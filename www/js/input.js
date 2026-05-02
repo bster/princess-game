@@ -21,23 +21,56 @@ export class InputManager {
     this._mouseX = 0;
     this._mouseY = 0;
     this._keys = {};
+    this._tapThisFrame = null;
+    this.keyLEdge = false;
+    this._prevKeyL = false;
+    this._prevKeyC = false;
 
     this._bindTouch();
     this._bindMouse();
     this._bindKeyboard();
   }
 
+  _setPointerFromEvent(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    this._mouseX = (e.clientX - rect.left) / rect.width * W;
+    this._mouseY = (e.clientY - rect.top) / rect.height * H;
+  }
+
+  /** UI taps (title / leaderboard). Consumes one tap per call. */
+  consumeTap() {
+    const t = this._tapThisFrame;
+    this._tapThisFrame = null;
+    return t;
+  }
+
   _bindTouch() {
     const opts = { passive: false };
-    this.canvas.addEventListener('touchstart', e => { e.preventDefault(); this._handleTouches(e.touches); }, opts);
+    this.canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const t = e.changedTouches[0];
+        this._setPointerFromEvent(t);
+        this._tapThisFrame = { x: this._mouseX, y: this._mouseY };
+      }
+      this._handleTouches(e.touches);
+    }, opts);
     this.canvas.addEventListener('touchmove', e => { e.preventDefault(); this._handleTouches(e.touches); }, opts);
     this.canvas.addEventListener('touchend', e => { e.preventDefault(); this._handleTouches(e.touches); }, opts);
     this.canvas.addEventListener('touchcancel', e => { e.preventDefault(); this._handleTouches(e.touches); }, opts);
   }
 
   _bindMouse() {
-    this.canvas.addEventListener('mousedown', e => { this._mouseDown = true; this._updateMouse(e); });
-    this.canvas.addEventListener('mousemove', e => { if (this._mouseDown) this._updateMouse(e); });
+    this.canvas.addEventListener('mousemove', e => {
+      this._setPointerFromEvent(e);
+      if (this._mouseDown) this._updateMouse(e);
+    });
+    this.canvas.addEventListener('mousedown', e => {
+      this._setPointerFromEvent(e);
+      this._tapThisFrame = { x: this._mouseX, y: this._mouseY };
+      this._mouseDown = true;
+      this._updateMouse(e);
+    });
     this.canvas.addEventListener('mouseup', () => {
       this._mouseDown = false;
       this.left = false; this.right = false;
@@ -51,20 +84,16 @@ export class InputManager {
   }
 
   _updateMouse(e) {
-    const rect = this.canvas.getBoundingClientRect();
-    this._mouseX = (e.clientX - rect.left) / rect.width * W;
-    this._mouseY = (e.clientY - rect.top) / rect.height * H;
+    this._setPointerFromEvent(e);
     this.left = false; this.right = false; this.down = false;
     this.jumpPressed = false; this.firePressed = false;
     if (this._mouseDown) {
       if (this._mouseX < W / 3) {
-        // Left third: D-pad
         const cx = 80, cy = H - 80;
         if (this._mouseY > cy + 20) this.down = true;
         else if (this._mouseX < cx) this.left = true;
         else this.right = true;
       } else {
-        // Right side: check if upper-right (fire) or lower-right (jump)
         const btnDivide = H - 140;
         if (this._mouseY < btnDivide) {
           this.firePressed = true;
@@ -89,7 +118,6 @@ export class InputManager {
         else if (tx < cx) this.left = true;
         else this.right = true;
       } else {
-        // A button (jump) = bottom-right, B button (fire) = upper-right
         const btnDivide = H - 140;
         if (ty < btnDivide) {
           this.firePressed = true;
@@ -101,7 +129,6 @@ export class InputManager {
   }
 
   update() {
-    // Keyboard overrides
     const kbLeft = !!(this._keys['ArrowLeft'] || this._keys['KeyA']);
     const kbRight = !!(this._keys['ArrowRight'] || this._keys['KeyD']);
     const kbDown = !!(this._keys['ArrowDown'] || this._keys['KeyS']);
@@ -119,7 +146,14 @@ export class InputManager {
     }
     this._kbWasActive = kbActive;
 
-    // Edge detection
+    const keyL = !!this._keys['KeyL'];
+    this.keyLEdge = keyL && !this._prevKeyL;
+    this._prevKeyL = keyL;
+
+    const keyC = !!this._keys['KeyC'];
+    this.keyCEdge = keyC && !this._prevKeyC;
+    this._prevKeyC = keyC;
+
     this.jumpEdge = this.jumpPressed && !this._prevJump;
     this._prevJump = this.jumpPressed;
     this.fireEdge = this.firePressed && !this._prevFire;
