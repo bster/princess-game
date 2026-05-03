@@ -937,8 +937,8 @@ export class Game {
     const meta = POWER_FANFARE[type];
     if (meta) {
       this.abilityFanfare = {
-        freezeLeft: 22,
-        timer: 105,
+        freezeLeft: 0,
+        timer: 90,
         title: meta.title,
         tagline: meta.tagline,
         color: meta.color,

@@ -727,73 +727,70 @@ export class Renderer {
     const f = game.abilityFanfare;
     if (!f || (f.timer <= 0 && f.freezeLeft <= 0)) return;
     const ctx = this.ctx;
-    const t = f.timer / 105;
-    const alpha = Math.min(1, (105 - f.timer) / 18) * (0.35 + 0.45 * (1 - t * 0.5));
+
+    // Slide-in then linger then slide-out (no full-screen darkening)
+    const TOTAL = 90;
+    const elapsed = TOTAL - f.timer;
+    const slideIn = Math.min(elapsed / 10, 1);
+    const slideOut = Math.min(Math.max((TOTAL - 12 - elapsed) / 12, 0), 1);
+    const reveal = slideIn * slideOut;
+    if (reveal <= 0) return;
+
+    const w = W - 48;
+    const h = 56;
+    const x = 24;
+    const y = 90 + (1 - slideIn) * -30; // slide down from above HUD
 
     ctx.save();
-    ctx.fillStyle = `rgba(8,6,24,${alpha * 0.92})`;
-    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = reveal;
 
-    const ring = ctx.createRadialGradient(W / 2, H * 0.42, 20, W / 2, H * 0.42, 220);
-    ring.addColorStop(0, (f.color || '#fff') + '44');
-    ring.addColorStop(1, 'transparent');
-    ctx.fillStyle = ring;
+    // Pill background
+    ctx.fillStyle = 'rgba(20, 14, 40, 0.9)';
     ctx.beginPath();
-    ctx.arc(W / 2, H * 0.42, 240, 0, Math.PI * 2);
+    ctx.roundRect(x, y, w, h, 14);
+    ctx.fill();
+    ctx.strokeStyle = f.color || '#fff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Color chip on the left
+    const chipR = 18;
+    const chipX = x + 24;
+    const chipY = y + h / 2;
+    const grad = ctx.createRadialGradient(
+      chipX - 4,
+      chipY - 4,
+      2,
+      chipX,
+      chipY,
+      chipR
+    );
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(0.4, f.color || '#fff');
+    grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(chipX, chipY, chipR, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = f.color || '#fff';
-    ctx.lineWidth = 4;
-    ctx.globalAlpha = 0.85;
-    ctx.beginPath();
-    ctx.arc(W / 2, H * 0.42, 72 + Math.sin(game.frame * 0.12) * 4, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    // Tiny "POWER-UP" eyebrow
+    ctx.font = 'bold 10px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.textAlign = 'left';
+    ctx.fillText('POWER-UP', x + 56, y + 18);
 
-    ctx.font = 'bold 11px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.textAlign = 'center';
-    ctx.fillText('POWER-UP', W / 2, H * 0.32);
-
-    ctx.font = 'bold 26px Georgia';
+    // Title
+    ctx.font = 'bold 18px Georgia';
     ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 8;
-    ctx.fillText(f.title, W / 2, H * 0.4);
-    ctx.shadowBlur = 0;
+    ctx.fillText(f.title, x + 56, y + 36);
 
-    ctx.font = '15px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    const words = f.tagline;
-    const maxW = W - 48;
-    this._wrapText(ctx, words, W / 2, H * 0.46, maxW, 20);
-
-    ctx.font = '13px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(
-      f.freezeLeft > 0 ? 'Hang on…' : 'Good luck.',
-      W / 2,
-      H * 0.58
-    );
+    // Tagline (short, single line)
+    ctx.font = '11px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    const tag = f.tagline.length > 42 ? f.tagline.slice(0, 40) + '…' : f.tagline;
+    ctx.fillText(tag, x + 56, y + 50);
 
     ctx.restore();
-  }
-
-  _wrapText(ctx, text, cx, startY, maxWidth, lineHeight) {
-    const words = text.split(' ');
-    let line = '';
-    let y = startY;
-    for (let i = 0; i < words.length; i++) {
-      const test = line + words[i] + ' ';
-      if (ctx.measureText(test).width > maxWidth && line.length > 0) {
-        ctx.fillText(line.trim(), cx, y);
-        line = words[i] + ' ';
-        y += lineHeight;
-      } else {
-        line = test;
-      }
-    }
-    ctx.fillText(line.trim(), cx, y);
   }
 
   renderLeaderboard(game) {
