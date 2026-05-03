@@ -204,27 +204,15 @@ export class Game {
       return;
     }
 
-    let dx = 0;
-    let dy = 0;
-    if (input.left) dx -= Ow.OW_SPEED;
-    if (input.right) dx += Ow.OW_SPEED;
-    if (input.up) dy -= Ow.OW_SPEED;
-    if (input.down) dy += Ow.OW_SPEED;
-    if (dx !== 0 && dy !== 0) {
-      dx *= 0.7071;
-      dy *= 0.7071;
+    const wasTraversing = !!this.ow.traversal;
+    const result = Ow.tickOverworld(this.ow, input, this.maxReachableLevel);
+    if (result.arrivedAt) {
+      this.audio.play('uiClick');
+    } else if (!wasTraversing && this.ow.traversal) {
+      this.audio.play('uiClick');
     }
 
-    const rects = Ow.getOwCollisionRects();
-    this.ow = Ow.moveOwPlayer(this.ow, dx, dy, rects);
-    this.ow.lastDx = dx;
-    this.ow.lastDy = dy;
-    this.owTarget = Ow.findInteractTarget(
-      this.ow.x,
-      this.ow.y,
-      this.maxReachableLevel,
-      this.minigamesUsed
-    );
+    this.owTarget = Ow.getInteractTarget(this.ow, this.maxReachableLevel, this.minigamesUsed);
 
     if (this.frame % 420 === 0) ProgressSave.saveRun(this._runPayload());
 
@@ -232,8 +220,8 @@ export class Game {
     if (go && this.owTarget) {
       if (this.owTarget.kind === 'level') {
         this._enterLevelFromOw(this.owTarget.levelIndex);
-      } else if (this.owTarget.id) {
-        this.mini = createMiniState(this.owTarget.id);
+      } else if (this.owTarget.miniId) {
+        this.mini = createMiniState(this.owTarget.miniId);
         this.state = 'minigame';
         this.audio.play('mapEnter');
       }
@@ -251,8 +239,8 @@ export class Game {
   _exitToOverworldFromLevel() {
     this.audio.play('uiBack');
     const anchor = Math.min(this.levelIndex, this.maxReachableLevel);
-    const sp = Ow.spawnOwNearLevel(anchor);
-    this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+    const nodeId = Ow.getNodeIdForLevel(anchor);
+    this.ow = Ow.createOwState(nodeId, this.ow?.facing ?? 1);
     this.levelData = null;
     this.player = null;
     this.enemies = [];
@@ -309,8 +297,7 @@ export class Game {
     this.state = 'overworld';
     this.abilityFanfare = null;
     this.mini = null;
-    const sp = Ow.spawnOwNearLevel(0);
-    this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+    this.ow = Ow.createOwState(Ow.getStartNodeId(), 1);
     this.levelData = null;
     this.player = null;
     ProgressSave.saveRun(this._runPayload());
@@ -342,8 +329,8 @@ export class Game {
     this.abilityFanfare = null;
     this.mini = null;
     const anchor = Math.min(this.levelIndex, this.maxReachableLevel);
-    const sp = Ow.spawnOwNearLevel(anchor);
-    this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+    const nodeId = data.owNodeId || Ow.getNodeIdForLevel(anchor);
+    this.ow = Ow.createOwState(nodeId, 1);
     this.levelData = null;
     this.player = null;
     ProgressSave.saveRun(this._runPayload());
@@ -353,6 +340,7 @@ export class Game {
     return {
       levelIndex: this.levelIndex,
       maxReachableLevel: this.maxReachableLevel,
+      owNodeId: this.ow?.nodeId,
       minigamesUsed: { ...this.minigamesUsed },
       lives: this.lives,
       score: this.score,
@@ -378,8 +366,8 @@ export class Game {
       if (completed < total - 1) {
         this.maxReachableLevel = Math.max(this.maxReachableLevel, completed + 1);
         this.levelIndex = completed + 1;
-        const sp = Ow.spawnOwNearLevel(this.levelIndex);
-        this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
+        const nodeId = Ow.getNodeIdForLevel(this.levelIndex);
+        this.ow = Ow.createOwState(nodeId, this.ow?.facing ?? 1);
         this.state = 'overworld';
         ProgressSave.saveRun(this._runPayload());
       } else {

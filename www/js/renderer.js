@@ -1292,8 +1292,10 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.save();
 
-    const camX = game.ow.x - W / 2;
-    const camY = game.ow.y - H * 0.55;
+    const playerPos = Ow.getOwPlayerPos(game.ow);
+    const playerFacing = Ow.getOwPlayerFacing(game.ow);
+    const camX = playerPos.x - W / 2;
+    const camY = playerPos.y - H * 0.55;
     const sx = (wx) => wx - camX;
     const sy = (wy) => wy - camY;
     const frame = game.frame;
@@ -1337,72 +1339,68 @@ export class Renderer {
     ctx.closePath();
     ctx.fill();
 
-    // Path: walked vs unwalked
-    const pathSegments = (i) => {
-      const a = Ow.OW_PATH_SPOTS[i];
-      const b = Ow.OW_PATH_SPOTS[i + 1];
-      return [a, b];
+    // Path edges — walked (between two reachable nodes) vs unwalked
+    const edges = Ow.getOwEdges();
+    const isWalked = (e) => {
+      const a = Ow.getOwNode(e.aId);
+      const b = Ow.getOwNode(e.bId);
+      const ar = Ow.isNodeReachable(a, game.maxReachableLevel);
+      const br = Ow.isNodeReachable(b, game.maxReachableLevel);
+      return ar && br;
     };
-    const drawPathSegment = (i, walked) => {
-      const [a, b] = pathSegments(i);
-      const ax = sx(a[0] + 39);
-      const ay = sy(a[1] + 36);
-      const bx = sx(b[0] + 39);
-      const by = sy(b[1] + 36);
-      const cpx = sx((a[0] + b[0]) / 2 + 90);
-      const cpy = sy((a[1] + b[1]) / 2);
 
-      ctx.strokeStyle = walked ? 'rgba(232,196,82,0.95)' : 'rgba(160,140,90,0.55)';
-      ctx.lineWidth = walked ? 32 : 26;
+    const drawEdge = (e, walked) => {
+      const ax = sx(e.ax);
+      const ay = sy(e.ay);
+      const bx = sx(e.bx);
+      const by = sy(e.by);
+      const cx = sx(e.cx);
+      const cy = sy(e.cy);
+
+      ctx.strokeStyle = walked ? 'rgba(110,80,40,0.7)' : 'rgba(60,50,40,0.45)';
+      ctx.lineWidth = walked ? 36 : 30;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(ax, ay);
-      ctx.quadraticCurveTo(cpx, cpy, bx, by);
+      ctx.quadraticCurveTo(cx, cy, bx, by);
       ctx.stroke();
 
-      // Path edge
-      ctx.strokeStyle = walked ? 'rgba(180,140,40,0.7)' : 'rgba(110,90,60,0.55)';
-      ctx.lineWidth = walked ? 36 : 30;
-      ctx.globalCompositeOperation = 'destination-over';
+      ctx.strokeStyle = walked ? 'rgba(232,196,82,0.95)' : 'rgba(160,140,90,0.55)';
+      ctx.lineWidth = walked ? 28 : 22;
       ctx.beginPath();
       ctx.moveTo(ax, ay);
-      ctx.quadraticCurveTo(cpx, cpy, bx, by);
+      ctx.quadraticCurveTo(cx, cy, bx, by);
       ctx.stroke();
-      ctx.globalCompositeOperation = 'source-over';
+
+      // Dashed centre stripe on walked path
+      if (walked) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 10]);
+        ctx.lineDashOffset = -((frame * 0.6) % 18);
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.quadraticCurveTo(cx, cy, bx, by);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     };
 
-    for (let i = 0; i < Ow.OW_PATH_SPOTS.length - 1; i++) {
-      drawPathSegment(i, i < game.maxReachableLevel);
-    }
+    for (const e of edges) drawEdge(e, isWalked(e));
     ctx.lineWidth = 1;
     ctx.lineCap = 'butt';
 
-    // Path dots animating along walked segments
-    const dotPhase = (frame % 60) / 60;
-    for (let i = 0; i < game.maxReachableLevel; i++) {
-      const [a, b] = pathSegments(i);
-      const t = dotPhase;
-      const cpx = (a[0] + b[0]) / 2 + 90;
-      const cpy = (a[1] + b[1]) / 2;
-      const px =
-        (1 - t) * (1 - t) * (a[0] + 39) + 2 * (1 - t) * t * cpx + t * t * (b[0] + 39);
-      const py =
-        (1 - t) * (1 - t) * (a[1] + 36) + 2 * (1 - t) * t * cpy + t * t * (b[1] + 36);
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.beginPath();
-      ctx.arc(sx(px), sy(py), 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Buildings (level pins + arcades)
-    const buildings = Ow.getOwBuildings();
-    for (const b of buildings) {
+    // Nodes (level pins + arcades)
+    const nodes = Ow.getOwNodes();
+    for (const b of nodes) {
       const x = sx(b.x);
       const y = sy(b.y);
       if (x < -160 || x > W + 160 || y < -160 || y > H + 160) continue;
 
-      const locked = b.kind === 'level' && b.levelIndex > game.maxReachableLevel;
-      const usedMini = b.kind === 'minigame' && game.minigamesUsed[b.id];
+      const reachable = Ow.isNodeReachable(b, game.maxReachableLevel);
+      const locked = b.kind === 'level' && !reachable;
+      const usedMini = b.kind === 'minigame' && game.minigamesUsed[b.miniId];
+      const isCurrent = !game.ow.traversal && game.ow.nodeId === b.id;
 
       // Shadow
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
@@ -1410,10 +1408,22 @@ export class Renderer {
       ctx.ellipse(x + b.w / 2, y + b.h + 8, b.w * 0.5, 8, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // Highlight ring on the current node
+      if (isCurrent) {
+        const pulse = 0.55 + 0.35 * Math.sin(frame * 0.18);
+        ctx.strokeStyle = `rgba(255, 230, 130, ${pulse})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(x + b.w / 2, y + b.h / 2, Math.max(b.w, b.h) * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
+
       if (b.kind === 'level') {
         this._drawStagePin(b, x, y, frame, locked, b.levelIndex < game.maxReachableLevel);
         const medals = game.medalManager.getMedals(b.levelIndex);
-        const earned = (medals.collector ? 1 : 0) + (medals.speedrun ? 1 : 0) + (medals.flawless ? 1 : 0);
+        const earned =
+          (medals.collector ? 1 : 0) + (medals.speedrun ? 1 : 0) + (medals.flawless ? 1 : 0);
         if (earned > 0) {
           for (let i = 0; i < 3; i++) {
             const mx = x + 14 + i * 22;
@@ -1426,9 +1436,9 @@ export class Renderer {
     }
 
     // Player + walking bob
-    const px = sx(game.ow.x);
-    const py = sy(game.ow.y);
-    const moving = Math.abs(game.ow.lastDx || 0) + Math.abs(game.ow.lastDy || 0) > 0.1;
+    const px = sx(playerPos.x);
+    const py = sy(playerPos.y);
+    const moving = !!game.ow.traversal;
     const bob = moving ? Math.sin(frame * 0.4) * 3 : Math.sin(frame * 0.1) * 1;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath();
@@ -1439,9 +1449,9 @@ export class Renderer {
     ctx.translate(px, py + bob);
     ctx.scale(0.5, 0.5);
     if (game.character === 'frank') {
-      drawFrankPlayer(ctx, 0, 0, game.ow.facing, frame, false, false, 1, 1);
+      drawFrankPlayer(ctx, 0, 0, playerFacing, frame, false, false, 1, 1);
     } else {
-      drawPrincess(ctx, 0, 0, game.ow.facing, frame, false, false, 1, 1);
+      drawPrincess(ctx, 0, 0, playerFacing, frame, false, false, 1, 1);
     }
     ctx.restore();
 
@@ -1449,7 +1459,7 @@ export class Renderer {
     ctx.font = '13px Georgia';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillText('Walk between stages · Jump (A) to enter · MAP exits a level', W / 2, H - 26);
+    ctx.fillText('D-pad walks the path · A enters · MAP exits a level', W / 2, H - 26);
 
     if (game.owTarget) {
       const label =

@@ -10,6 +10,7 @@ const KEY = 'princessfrank_run';
  * @typedef {Object} RunPayload
  * @property {number} levelIndex
  * @property {number} maxReachableLevel
+ * @property {string} [owNodeId]
  * @property {{ slot?: boolean, claw?: boolean, hoops?: boolean }} minigamesUsed
  * @property {number} lives
  * @property {number} score
@@ -36,6 +37,7 @@ export function loadRun() {
     d.maxReachableLevel = mr;
     d.levelIndex = Math.max(0, Math.min(lc - 1, d.levelIndex));
     if (!d.minigamesUsed || typeof d.minigamesUsed !== 'object') d.minigamesUsed = {};
+    if (typeof d.owNodeId !== 'string') d.owNodeId = undefined;
     return d;
   } catch {
     return null;
