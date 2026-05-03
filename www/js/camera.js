@@ -1,8 +1,12 @@
 // ============================================================
-// CAMERA — Lerp follow + look-ahead + trauma-based shake
+// CAMERA — Smooth horizontal follow with look-ahead + trauma shake
 // ============================================================
 
 import { W } from './constants';
+
+const FOLLOW_LERP = 0.11;
+const LOOK_AHEAD_PX = 64;
+const LOOK_AHEAD_LERP = 0.05;
 
 export class Camera {
   constructor() {
@@ -11,11 +15,12 @@ export class Camera {
     this.shakeY = 0;
     this._trauma = 0;
     this._shakeFrame = 0;
-    this._frozen = false; // freeze during death
+    this._frozen = false;
+    this._lookAhead = 0;
   }
 
   shake(intensity, _duration) {
-    this._trauma = Math.min(1.0, this._trauma + intensity * 0.08);
+    this._trauma = Math.min(1.0, this._trauma + intensity * 0.07);
   }
 
   freeze() {
@@ -27,17 +32,17 @@ export class Camera {
 
   update(targetX, levelWidth, facing) {
     if (this._frozen) {
-      // Still update shake, but don't follow
       this._updateShake();
       return;
     }
 
-    // Look-ahead: shift 40px in facing direction
-    const lookAhead = (facing || 1) * 40;
-    const camTarget = targetX + lookAhead - W * 0.45;
-    this.x += (camTarget - this.x) * 0.08; // slightly slower lerp for smoother look-ahead
+    const desiredLook = (facing || 1) * LOOK_AHEAD_PX;
+    this._lookAhead += (desiredLook - this._lookAhead) * LOOK_AHEAD_LERP;
+
+    const camTarget = targetX + this._lookAhead - W * 0.46;
+    this.x += (camTarget - this.x) * FOLLOW_LERP;
     if (this.x < 0) this.x = 0;
-    if (this.x > levelWidth - W) this.x = levelWidth - W;
+    if (levelWidth && this.x > levelWidth - W) this.x = Math.max(0, levelWidth - W);
 
     this._updateShake();
   }
@@ -46,10 +51,10 @@ export class Camera {
     if (this._trauma > 0) {
       this._shakeFrame++;
       const shake = this._trauma * this._trauma;
-      const maxOffset = 12;
+      const maxOffset = 10;
       this.shakeX = maxOffset * shake * Math.sin(this._shakeFrame * 0.7 + 1.3);
       this.shakeY = maxOffset * shake * Math.sin(this._shakeFrame * 0.9 + 2.7);
-      this._trauma = Math.max(0, this._trauma - 0.02);
+      this._trauma = Math.max(0, this._trauma - 0.022);
     } else {
       this.shakeX = 0;
       this.shakeY = 0;

@@ -1,8 +1,18 @@
 // ============================================================
-// INPUT MANAGER — Touch, mouse, keyboard
+// INPUT MANAGER — Touch (zoned), mouse, keyboard
 // ============================================================
 
 import { W, H } from './constants';
+
+export const TOUCH_LAYOUT = {
+  dpad: { cx: 84, cy: H - 90, r: 84 },
+  jump: { cx: W - 64, cy: H - 90, r: 50 },
+  fire: { cx: W - 64, cy: H - 180, r: 38 },
+};
+
+function dist(ax, ay, bx, by) {
+  return Math.hypot(ax - bx, ay - by);
+}
 
 export class InputManager {
   constructor(canvas) {
@@ -18,14 +28,18 @@ export class InputManager {
     this._prevJump = false;
     this._prevFire = false;
     this._kbWasActive = false;
+
     this._mouseDown = false;
     this._mouseX = 0;
     this._mouseY = 0;
+
     this._keys = {};
     this._tapThisFrame = null;
+
     this.keyLEdge = false;
     this._prevKeyL = false;
     this._prevKeyC = false;
+    this.keyCEdge = false;
     this.keyMEdge = false;
     this._prevKeyM = false;
     this.escapeEdge = false;
@@ -42,11 +56,70 @@ export class InputManager {
     this._mouseY = ((e.clientY - rect.top) / rect.height) * H;
   }
 
-  /** UI taps (title / leaderboard). Consumes one tap per call. */
   consumeTap() {
     const t = this._tapThisFrame;
     this._tapThisFrame = null;
     return t;
+  }
+
+  _resetVirtual() {
+    this.left = false;
+    this.right = false;
+    this.down = false;
+    this.up = false;
+    this.jumpPressed = false;
+    this.firePressed = false;
+  }
+
+  _applyTouchPoint(px, py) {
+    const dp = TOUCH_LAYOUT.dpad;
+    const jb = TOUCH_LAYOUT.jump;
+    const fb = TOUCH_LAYOUT.fire;
+
+    // Jump (largest right-side button, check first so corners go to it)
+    if (dist(px, py, jb.cx, jb.cy) <= jb.r) {
+      this.jumpPressed = true;
+      return;
+    }
+    // Fire
+    if (dist(px, py, fb.cx, fb.cy) <= fb.r) {
+      this.firePressed = true;
+      return;
+    }
+    // D-pad
+    if (dist(px, py, dp.cx, dp.cy) <= dp.r) {
+      const dx = px - dp.cx;
+      const dy = py - dp.cy;
+      const a = Math.atan2(dy, dx); // -PI..PI
+      const deg = (a * 180) / Math.PI;
+      // 8-way classification via half-circle arcs
+      // right: |deg| < 22.5 → right
+      // up-right etc.
+      const ad = Math.abs(deg);
+      if (ad <= 22.5) {
+        this.right = true;
+      } else if (ad >= 157.5) {
+        this.left = true;
+      } else if (deg > 22.5 && deg < 67.5) {
+        this.right = true;
+        this.down = true;
+      } else if (deg >= 67.5 && deg <= 112.5) {
+        this.down = true;
+      } else if (deg > 112.5 && deg < 157.5) {
+        this.left = true;
+        this.down = true;
+      } else if (deg < -22.5 && deg > -67.5) {
+        this.right = true;
+        this.up = true;
+      } else if (deg <= -67.5 && deg >= -112.5) {
+        this.up = true;
+      } else if (deg < -112.5 && deg > -157.5) {
+        this.left = true;
+        this.up = true;
+      }
+      return;
+    }
+    // Outside controls — used only as a tap (consumed elsewhere)
   }
 
   _bindTouch() {
@@ -103,12 +176,7 @@ export class InputManager {
     });
     this.canvas.addEventListener('mouseup', () => {
       this._mouseDown = false;
-      this.left = false;
-      this.right = false;
-      this.down = false;
-      this.up = false;
-      this.jumpPressed = false;
-      this.firePressed = false;
+      this._resetVirtual();
     });
   }
 
@@ -121,60 +189,20 @@ export class InputManager {
     });
   }
 
-  _updateMouse(e) {
-    this._setPointerFromEvent(e);
-    this.left = false;
-    this.right = false;
-    this.down = false;
-    this.up = false;
-    this.jumpPressed = false;
-    this.firePressed = false;
-    if (this._mouseDown) {
-      if (this._mouseX < W / 3) {
-        const cx = 80,
-          cy = H - 80;
-        if (this._mouseY > cy + 20) this.down = true;
-        else if (this._mouseY < cy - 26) this.up = true;
-        else if (this._mouseX < cx) this.left = true;
-        else this.right = true;
-      } else {
-        const btnDivide = H - 140;
-        if (this._mouseY < btnDivide) {
-          this.firePressed = true;
-        } else {
-          this.jumpPressed = true;
-        }
-      }
-    }
+  _updateMouse() {
+    this._resetVirtual();
+    if (!this._mouseDown) return;
+    this._applyTouchPoint(this._mouseX, this._mouseY);
   }
 
   _handleTouches(touchList) {
-    this.left = false;
-    this.right = false;
-    this.down = false;
-    this.up = false;
-    this.jumpPressed = false;
-    this.firePressed = false;
+    this._resetVirtual();
     const rect = this.canvas.getBoundingClientRect();
     for (let i = 0; i < touchList.length; i++) {
       const t = touchList[i];
       const tx = ((t.clientX - rect.left) / rect.width) * W;
       const ty = ((t.clientY - rect.top) / rect.height) * H;
-      if (tx < W / 3) {
-        const cx = 80,
-          cy = H - 80;
-        if (ty > cy + 20) this.down = true;
-        else if (ty < cy - 26) this.up = true;
-        else if (tx < cx) this.left = true;
-        else this.right = true;
-      } else {
-        const btnDivide = H - 140;
-        if (ty < btnDivide) {
-          this.firePressed = true;
-        } else {
-          this.jumpPressed = true;
-        }
-      }
+      this._applyTouchPoint(tx, ty);
     }
   }
 
@@ -185,15 +213,7 @@ export class InputManager {
     const kbUp = !!(this._keys['ArrowUp'] || this._keys['KeyW']);
     const kbJump = !!this._keys['Space'];
     const kbFire = !!(this._keys['KeyX'] || this._keys['ShiftLeft'] || this._keys['ShiftRight']);
-    const kbActive =
-      kbLeft ||
-      kbRight ||
-      kbJump ||
-      kbDown ||
-      kbUp ||
-      kbFire ||
-      !!this._keys['ArrowUp'] ||
-      !!this._keys['KeyW'];
+    const kbActive = kbLeft || kbRight || kbJump || kbDown || kbUp || kbFire;
 
     if (kbActive || this._kbWasActive) {
       this.left = kbLeft;

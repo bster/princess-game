@@ -150,18 +150,23 @@ export class Game {
       if (hit === 'princess') {
         this.selectCursor = 0;
         this.character = 'princess';
+        this.audio.play('uiClick');
         handled = true;
       } else if (hit === 'frank') {
         this.selectCursor = 1;
         this.character = 'frank';
+        this.audio.play('uiClick');
         handled = true;
       } else if (hit === 'continue' && hasSave) {
+        this.audio.play('uiSelect');
         this._continueRun();
         handled = true;
       } else if (hit === 'newGame') {
+        this.audio.play('uiSelect');
         this._startNewRun();
         handled = true;
       } else if (hit === 'leaderboard') {
+        this.audio.play('uiClick');
         this.state = 'leaderboard';
         handled = true;
       }
@@ -205,9 +210,15 @@ export class Game {
     if (input.right) dx += Ow.OW_SPEED;
     if (input.up) dy -= Ow.OW_SPEED;
     if (input.down) dy += Ow.OW_SPEED;
+    if (dx !== 0 && dy !== 0) {
+      dx *= 0.7071;
+      dy *= 0.7071;
+    }
 
     const rects = Ow.getOwCollisionRects();
     this.ow = Ow.moveOwPlayer(this.ow, dx, dy, rects);
+    this.ow.lastDx = dx;
+    this.ow.lastDy = dy;
     this.owTarget = Ow.findInteractTarget(
       this.ow.x,
       this.ow.y,
@@ -224,6 +235,7 @@ export class Game {
       } else if (this.owTarget.id) {
         this.mini = createMiniState(this.owTarget.id);
         this.state = 'minigame';
+        this.audio.play('mapEnter');
       }
     }
   }
@@ -232,10 +244,12 @@ export class Game {
     this.levelIndex = levelIdx;
     this._initLevel(levelIdx);
     this.state = 'playing';
+    this.audio.play('mapEnter');
     ProgressSave.saveRun(this._runPayload());
   }
 
   _exitToOverworldFromLevel() {
+    this.audio.play('uiBack');
     const anchor = Math.min(this.levelIndex, this.maxReachableLevel);
     const sp = Ow.spawnOwNearLevel(anchor);
     this.ow = { x: sp.x, y: sp.y, facing: sp.facing ?? 1 };
@@ -263,7 +277,8 @@ export class Game {
       this.state = 'overworld';
       return;
     }
-    if (input.keyLEdge) {
+    if (input.keyLEdge || input.keyMEdge || input.escapeEdge) {
+      this.audio.play('uiBack');
       this.mini = null;
       this.state = 'overworld';
       return;
@@ -376,6 +391,7 @@ export class Game {
 
   _updateGameOver(input) {
     this.gameOverTimer++;
+    if (this.gameOverTimer === 1) this.audio.play('gameover');
     if (this.gameOverTimer > 85 && input.jumpEdge && !this._gameOverPrompted) {
       this._gameOverPrompted = true;
       const name = window.prompt('Save this score to the leaderboard?', 'Hero');
@@ -391,6 +407,7 @@ export class Game {
   _updateVictory(input) {
     this.victoryTimer++;
     this.particles.update();
+    if (this.victoryTimer === 1) this.audio.play('victory');
     if (this.victoryTimer % 15 === 0 && this.player) {
       this.particles.spawnVictoryHearts(this.player.x, this.player.y - 40);
     }
@@ -473,15 +490,23 @@ export class Game {
 
     // Player pipeline: simulate → move → collide → post
     const wasOnGround = player.onGround;
+    const wasGroundedOrCoyote = wasOnGround || player.coyoteTime > 0;
+    const prevVy = player.vy;
     player.simulate(input);
     player.applyMovement(this.levelData.width);
     resolvePlayerLevel(player, this.levelData);
     player.postCollision();
 
-    // Landing dust particles
+    // Jump SFX — fires on takeoff frame
+    if (prevVy >= 0 && player.vy < -1 && wasGroundedOrCoyote) {
+      this.audio.play('jump');
+    }
+
+    // Landing dust particles + landing thump
     if (player.onGround && !wasOnGround && player.vy === 0) {
       this.particles.spawnDust(player.x, player.y + player.h);
       this.camera.shake(3, 5);
+      if (Math.abs(prevVy) > 4) this.audio.play('stomp');
     }
 
     // Skid dust — when turnaround happens at speed
@@ -615,9 +640,11 @@ export class Game {
               this.particles.spawnDeath(player.x, player.y + 30);
               this.camera.shake(8, 12);
               this.camera.freeze();
+              this.audio.play('death');
             } else {
               player.knockback(proj.x);
               this.camera.shake(4, 6);
+              this.audio.play('hurt');
             }
             proj.alive = false;
           }
@@ -641,12 +668,14 @@ export class Game {
         t.collected = true;
         this._addScore(50, t.x, t.y);
         this.particles.spawnCollect(t.x, t.y);
+        this.audio.play('coin');
         this.tiaraCount++;
         this.levelTiarasCollected++;
         if (this.tiaraCount >= this.nextLifeTiaras) {
           this.lives++;
           this.nextLifeTiaras += 10;
           this.particles.createText(t.x, t.y - 50, '1UP!');
+          this.audio.play('oneUp');
         }
         this._persistRunIfPlaying();
       }
@@ -667,7 +696,7 @@ export class Game {
         this.particles.createText(g.x, g.y - 48, 'SECRET GEM!', '#E8D7FF');
         this.particles.spawnPowerUp(g.x, g.y, '#9932CC');
         this.camera.shake(4, 8);
-        this.audio.play('powerup');
+        this.audio.play('gem');
         ProgressSave.saveRun(this._runPayload());
       }
     }
@@ -691,11 +720,13 @@ export class Game {
           this._evaluateMedals();
           this.state = 'levelComplete';
           this.levelCompleteTimer = 0;
+          this.audio.play('levelClear');
           ProgressSave.saveRun(this._runPayload());
         }
       } else if (Math.abs(player.x - this.flag.x) < 30 && player.y + player.h > this.flag.y - 140) {
         this.flag.reached = true;
         this.flag.reachedFrame = 0;
+        this.audio.play('flagRaise');
       }
     }
 
@@ -711,19 +742,21 @@ export class Game {
         this.cage.open = true;
         this._evaluateMedals();
         this._addScore(500, this.cage.x + 35, this.cage.y);
+        this.audio.play('cageOpen');
         const total = this.levelManager.totalLevels;
         if (this.levelIndex < total - 1) {
           this.state = 'levelComplete';
           this.levelCompleteTimer = 0;
+          this.audio.play('levelClear');
         } else {
           this.state = 'victory';
           this.victoryTimer = 0;
+          this.audio.play('victory');
         }
         ProgressSave.saveRun(this._runPayload());
       }
     }
 
-    // Camera with look-ahead
     this.camera.update(player.x, this.levelData.width, player.facing);
 
     this.particles.update();
@@ -766,6 +799,7 @@ export class Game {
         this.camera.shake(5, 8);
         this.freezeTimer = 4; // hit freeze
         enemy.flashTimer = 8;
+        this.audio.play(enemy.type === 'boss' ? 'bossDown' : 'stomp');
       } else {
         // Boss hit but not killed
         this._addScore(25, enemy.x, enemy.y);
@@ -773,6 +807,7 @@ export class Game {
         this.camera.shake(8, 12);
         this.freezeTimer = 6; // longer freeze for boss
         enemy.flashTimer = 10;
+        this.audio.play('bossHit');
       }
       return true;
     }
@@ -788,11 +823,13 @@ export class Game {
       this.camera.freeze();
       this.freezeTimer = 5;
       this.slowMoTimer = 15;
+      this.audio.play('death');
     } else {
       player.knockback(enemy.x);
       player.flashTimer = 8;
       this.camera.shake(4, 6);
       this.freezeTimer = 3;
+      this.audio.play('hurt');
     }
     return true;
   }
@@ -826,8 +863,10 @@ export class Game {
         if (died) {
           this.particles.spawnDeath(player.x, player.y + 30);
           this.camera.freeze();
+          this.audio.play('death');
         } else {
           player.knockback(boss.x);
+          this.audio.play('hurt');
         }
       }
       this.camera.shake(10, 15);
@@ -904,6 +943,8 @@ export class Game {
     this.particles.spawnPowerUp(powerUp.x, powerUp.y, colors[type] || '#fff');
     this.camera.shake(3, 5);
     this.audio.play('powerup');
+    if (type === 'shield') this.audio.play('shieldOn');
+    else if (type === 'growth') this.audio.play('growthOn');
   }
 
   _killPlayer() {
@@ -916,6 +957,7 @@ export class Game {
       this.particles.spawnDeath(this.player.x, this.player.y + 30);
       this.camera.shake(8, 12);
       this.camera.freeze();
+      this.audio.play('death');
     }
   }
 

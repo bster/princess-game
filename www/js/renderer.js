@@ -42,6 +42,8 @@ import { getLeaderboardTop } from './leaderboard';
 import { getTitleUi } from './ui/titleLayout';
 import * as Ow from './overworld/overworldMap';
 import { MAP_EXIT_BTN } from './ui/mapExitUi';
+import { TOUCH_LAYOUT } from './input';
+import { HOOPS_GEOM, SLOT_SYMBOLS_COUNT } from './minigames/arcadeMinigames';
 
 export class Renderer {
   constructor(ctx) {
@@ -629,66 +631,95 @@ export class Renderer {
     ctx.textAlign = 'left';
   }
 
-  renderControls() {
+  renderControls(input, opts) {
     const ctx = this.ctx;
-    ctx.globalAlpha = 0.3;
+    const showUp = opts && opts.showUp;
+    const dp = TOUCH_LAYOUT.dpad;
+    const jb = TOUCH_LAYOUT.jump;
+    const fb = TOUCH_LAYOUT.fire;
 
-    // D-pad
-    const dpadX = 80,
-      dpadY = H - 80;
+    ctx.save();
+
+    // ---- D-pad: rounded plus shape ----
+    const r = 36;
+    const arm = 22;
+    const cx = dp.cx;
+    const cy = dp.cy;
+    ctx.globalAlpha = 0.32;
     ctx.fillStyle = '#fff';
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(dpadX - 50, dpadY - 17, 100, 34, 8);
+    ctx.roundRect(cx - r - arm, cy - r * 0.5, (r + arm) * 2, r, 14);
     ctx.fill();
+    ctx.stroke();
     ctx.beginPath();
-    ctx.roundRect(dpadX - 17, dpadY - 50, 34, 100, 8);
+    ctx.roundRect(cx - r * 0.5, cy - r - arm, r, (r + arm) * 2, 14);
     ctx.fill();
+    ctx.stroke();
 
-    // D-pad arrows (left, right, down)
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath();
-    ctx.moveTo(dpadX - 35, dpadY);
-    ctx.lineTo(dpadX - 25, dpadY - 7);
-    ctx.lineTo(dpadX - 25, dpadY + 7);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(dpadX + 35, dpadY);
-    ctx.lineTo(dpadX + 25, dpadY - 7);
-    ctx.lineTo(dpadX + 25, dpadY + 7);
-    ctx.fill();
-    // Down arrow
-    ctx.beginPath();
-    ctx.moveTo(dpadX, dpadY + 35);
-    ctx.lineTo(dpadX - 7, dpadY + 25);
-    ctx.lineTo(dpadX + 7, dpadY + 25);
-    ctx.fill();
+    ctx.globalAlpha = input ? 0.7 : 0.5;
+    const arrow = (dx, dy, on) => {
+      ctx.fillStyle = on ? '#FFD66B' : 'rgba(20,20,30,0.55)';
+      ctx.beginPath();
+      const px = cx + dx;
+      const py = cy + dy;
+      const a = Math.atan2(dy, dx);
+      const t = 9;
+      const len = 11;
+      const nx = Math.cos(a);
+      const ny = Math.sin(a);
+      const tx = -ny;
+      const ty = nx;
+      ctx.moveTo(px + nx * len, py + ny * len);
+      ctx.lineTo(px - nx * len + tx * t, py - ny * len + ty * t);
+      ctx.lineTo(px - nx * len - tx * t, py - ny * len - ty * t);
+      ctx.closePath();
+      ctx.fill();
+    };
+    arrow(-44, 0, !!input?.left);
+    arrow(44, 0, !!input?.right);
+    arrow(0, 44, !!input?.down);
+    if (showUp) arrow(0, -44, !!input?.up);
 
-    // A button (jump) — bottom-right
-    const aBtnX = W - 60,
-      aBtnY = H - 80;
-    ctx.fillStyle = '#e74c3c';
+    // ---- A (jump) ----
+    ctx.globalAlpha = input?.jumpPressed ? 0.95 : 0.7;
+    const grad = ctx.createRadialGradient(jb.cx - 8, jb.cy - 8, 4, jb.cx, jb.cy, jb.r);
+    grad.addColorStop(0, input?.jumpPressed ? '#ff8a8a' : '#ff5e62');
+    grad.addColorStop(1, '#9a1a1f');
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(aBtnX, aBtnY, 30, 0, Math.PI * 2);
+    ctx.arc(jb.cx, jb.cy, jb.r * 0.78, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 20px Georgia';
+    ctx.font = 'bold 22px Georgia';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('A', aBtnX, aBtnY);
+    ctx.fillText('A', jb.cx, jb.cy);
 
-    // B button (fire) — upper-right
-    const bBtnX = W - 60,
-      bBtnY = H - 160;
-    ctx.fillStyle = '#FF4500';
+    // ---- B (fire) ----
+    ctx.globalAlpha = input?.firePressed ? 0.95 : 0.7;
+    const grad2 = ctx.createRadialGradient(fb.cx - 6, fb.cy - 6, 3, fb.cx, fb.cy, fb.r);
+    grad2.addColorStop(0, input?.firePressed ? '#ffd06b' : '#ff9a3c');
+    grad2.addColorStop(1, '#a83a06');
+    ctx.fillStyle = grad2;
     ctx.beginPath();
-    ctx.arc(bBtnX, bBtnY, 26, 0, Math.PI * 2);
+    ctx.arc(fb.cx, fb.cy, fb.r * 0.78, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.stroke();
+    ctx.globalAlpha = 1;
     ctx.fillStyle = '#fff';
-    ctx.fillText('B', bBtnX, bBtnY);
+    ctx.font = 'bold 18px Georgia';
+    ctx.fillText('B', fb.cx, fb.cy);
 
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
-    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   renderAbilityFanfare(game) {
@@ -1262,109 +1293,347 @@ export class Renderer {
     ctx.save();
 
     const camX = game.ow.x - W / 2;
-    const camY = game.ow.y - H / 2 + 70;
-
+    const camY = game.ow.y - H * 0.55;
     const sx = (wx) => wx - camX;
     const sy = (wy) => wy - camY;
+    const frame = game.frame;
 
+    // Sky
     const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, '#87CEEB');
-    sky.addColorStop(0.55, '#b8e994');
-    sky.addColorStop(1, '#78e08f');
+    sky.addColorStop(0, '#5dabe8');
+    sky.addColorStop(0.55, '#a3d9b1');
+    sky.addColorStop(1, '#67c08c');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = 'rgba(218,165,32,0.45)';
-    ctx.lineWidth = 36;
-    ctx.lineCap = 'round';
+    // Soft clouds parallax
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    for (let i = 0; i < 5; i++) {
+      const cx = ((i * 220 - camX * 0.18 + 1500) % (W + 200)) - 100;
+      const cy = 80 + (i % 3) * 60 - camY * 0.05;
+      drawCloud(ctx, cx, cy, 60 + (i % 2) * 24);
+    }
+
+    // Distant hills
+    ctx.fillStyle = 'rgba(67, 168, 102, 0.72)';
     ctx.beginPath();
-    for (let i = 0; i < Ow.OW_PATH_SPOTS.length - 1; i++) {
+    ctx.moveTo(0, H);
+    for (let i = 0; i < 16; i++) {
+      const xPos = ((i * 130 - camX * 0.45 + 2000) % (W + 200)) - 100;
+      ctx.lineTo(xPos, H - 130 - 40 * Math.abs(Math.sin(i * 1.3)));
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(46,170,90,0.85)';
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let i = 0; i < 18; i++) {
+      const xPos = ((i * 110 - camX * 0.7 + 2000) % (W + 200)) - 100;
+      ctx.lineTo(xPos, H - 70 - 30 * Math.abs(Math.sin(i * 0.9 + 1)));
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+
+    // Path: walked vs unwalked
+    const pathSegments = (i) => {
       const a = Ow.OW_PATH_SPOTS[i];
       const b = Ow.OW_PATH_SPOTS[i + 1];
-      ctx.moveTo(sx(a[0] + 38), sy(a[1] + 36));
-      ctx.quadraticCurveTo(sx((a[0] + b[0]) / 2 + 120), sy((a[1] + b[1]) / 2), sx(b[0] + 38), sy(b[1] + 36));
-    }
-    ctx.stroke();
-    ctx.lineWidth = 1;
+      return [a, b];
+    };
+    const drawPathSegment = (i, walked) => {
+      const [a, b] = pathSegments(i);
+      const ax = sx(a[0] + 39);
+      const ay = sy(a[1] + 36);
+      const bx = sx(b[0] + 39);
+      const by = sy(b[1] + 36);
+      const cpx = sx((a[0] + b[0]) / 2 + 90);
+      const cpy = sy((a[1] + b[1]) / 2);
 
-    ctx.fillStyle = 'rgba(46, 204, 113, 0.25)';
-    for (let i = 0; i < 12; i++) {
-      const gx = ((i * 137 - camX * 0.2) % (W + 80)) - 40;
+      ctx.strokeStyle = walked ? 'rgba(232,196,82,0.95)' : 'rgba(160,140,90,0.55)';
+      ctx.lineWidth = walked ? 32 : 26;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.ellipse(gx, H - 40 - (i % 4) * 12, 60 + (i % 3) * 20, 14, 0, 0, Math.PI * 2);
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(cpx, cpy, bx, by);
+      ctx.stroke();
+
+      // Path edge
+      ctx.strokeStyle = walked ? 'rgba(180,140,40,0.7)' : 'rgba(110,90,60,0.55)';
+      ctx.lineWidth = walked ? 36 : 30;
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(cpx, cpy, bx, by);
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    };
+
+    for (let i = 0; i < Ow.OW_PATH_SPOTS.length - 1; i++) {
+      drawPathSegment(i, i < game.maxReachableLevel);
+    }
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'butt';
+
+    // Path dots animating along walked segments
+    const dotPhase = (frame % 60) / 60;
+    for (let i = 0; i < game.maxReachableLevel; i++) {
+      const [a, b] = pathSegments(i);
+      const t = dotPhase;
+      const cpx = (a[0] + b[0]) / 2 + 90;
+      const cpy = (a[1] + b[1]) / 2;
+      const px =
+        (1 - t) * (1 - t) * (a[0] + 39) + 2 * (1 - t) * t * cpx + t * t * (b[0] + 39);
+      const py =
+        (1 - t) * (1 - t) * (a[1] + 36) + 2 * (1 - t) * t * cpy + t * t * (b[1] + 36);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.beginPath();
+      ctx.arc(sx(px), sy(py), 3, 0, Math.PI * 2);
       ctx.fill();
     }
 
+    // Buildings (level pins + arcades)
     const buildings = Ow.getOwBuildings();
     for (const b of buildings) {
       const x = sx(b.x);
       const y = sy(b.y);
-      if (x < -120 || x > W + 120 || y < -120 || y > H + 120) continue;
+      if (x < -160 || x > W + 160 || y < -160 || y > H + 160) continue;
 
       const locked = b.kind === 'level' && b.levelIndex > game.maxReachableLevel;
       const usedMini = b.kind === 'minigame' && game.minigamesUsed[b.id];
 
-      ctx.fillStyle = locked ? 'rgba(90,90,90,0.85)' : 'rgba(142, 68, 173, 0.92)';
-      ctx.fillRect(x, y, b.w, b.h);
-      ctx.fillStyle = locked ? '#555' : '#f6e58d';
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
       ctx.beginPath();
-      ctx.moveTo(x - 6, y);
-      ctx.lineTo(x + b.w / 2, y - 26);
-      ctx.lineTo(x + b.w + 6, y);
-      ctx.closePath();
+      ctx.ellipse(x + b.w / 2, y + b.h + 8, b.w * 0.5, 8, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-      ctx.strokeRect(x, y, b.w, b.h);
-
-      ctx.font = 'bold 14px Georgia';
-      ctx.fillStyle = locked ? 'rgba(255,255,255,0.35)' : '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText(b.kind === 'level' ? `Lv ${b.label}` : b.label, x + b.w / 2, y + b.h / 2 + 5);
-
-      if (usedMini) {
-        ctx.font = '11px Georgia';
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.fillText('Played', x + b.w / 2, y + b.h + 14);
+      if (b.kind === 'level') {
+        this._drawStagePin(b, x, y, frame, locked, b.levelIndex < game.maxReachableLevel);
+        const medals = game.medalManager.getMedals(b.levelIndex);
+        const earned = (medals.collector ? 1 : 0) + (medals.speedrun ? 1 : 0) + (medals.flawless ? 1 : 0);
+        if (earned > 0) {
+          for (let i = 0; i < 3; i++) {
+            const mx = x + 14 + i * 22;
+            drawStar(ctx, mx, y - 14, 7, i < earned ? '#FFD700' : 'rgba(255,255,255,0.25)');
+          }
+        }
+      } else {
+        this._drawArcadePin(b, x, y, frame, usedMini);
       }
     }
 
+    // Player + walking bob
     const px = sx(game.ow.x);
     const py = sy(game.ow.y);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    const moving = Math.abs(game.ow.lastDx || 0) + Math.abs(game.ow.lastDy || 0) > 0.1;
+    const bob = moving ? Math.sin(frame * 0.4) * 3 : Math.sin(frame * 0.1) * 1;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath();
-    ctx.ellipse(px, py + 18, 18, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py + 22, 18, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.save();
-    ctx.translate(px, py);
-    ctx.scale(0.42, 0.42);
+    ctx.translate(px, py + bob);
+    ctx.scale(0.5, 0.5);
     if (game.character === 'frank') {
-      drawFrankPlayer(ctx, 0, 0, game.ow.facing, game.frame, false, false, 1, 1);
+      drawFrankPlayer(ctx, 0, 0, game.ow.facing, frame, false, false, 1, 1);
     } else {
-      drawPrincess(ctx, 0, 0, game.ow.facing, game.frame, false, false, 1, 1);
+      drawPrincess(ctx, 0, 0, game.ow.facing, frame, false, false, 1, 1);
     }
     ctx.restore();
 
+    // Help banner
     ctx.font = '13px Georgia';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText(
-      'Paths · Jump enters towers · MAP top-right (or M / Esc) exits a level · L leaderboard',
-      W / 2,
-      H - 26
-    );
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillText('Walk between stages · Jump (A) to enter · MAP exits a level', W / 2, H - 26);
 
     if (game.owTarget) {
-      ctx.font = 'bold 15px Georgia';
-      ctx.fillStyle = 'rgba(255, 223, 128, 0.95)';
-      if (game.owTarget.kind === 'level') {
-        ctx.fillText(`Enter Level ${game.owTarget.levelIndex + 1} — Jump`, W / 2, H - 52);
-      } else if (!game.minigamesUsed[game.owTarget.id]) {
-        ctx.fillText(`Play ${game.owTarget.label} — Jump`, W / 2, H - 52);
-      }
+      const label =
+        game.owTarget.kind === 'level'
+          ? `Enter Level ${game.owTarget.levelIndex + 1}`
+          : `Play ${game.owTarget.label}`;
+      this._drawPrompt(ctx, label + ' — A', W / 2, H - 56, frame);
     }
 
+    ctx.restore();
+  }
+
+  _drawStagePin(b, x, y, frame, locked, cleared) {
+    const ctx = this.ctx;
+    const w = b.w;
+    const h = b.h;
+    const isFinal = b.final;
+    const isBoss = b.boss;
+    const baseColor = locked
+      ? '#7a7a8a'
+      : isFinal
+        ? '#5b3691'
+        : isBoss
+          ? '#5d3a1f'
+          : '#9a4dba';
+    const roofColor = locked ? '#9a9aab' : isFinal ? '#fac24a' : isBoss ? '#3b2114' : '#f6e58d';
+    const trimColor = locked ? '#5a5a6a' : '#4a2660';
+
+    // Castle base
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(x, y, w, h);
+
+    // Battlements
+    ctx.fillStyle = baseColor;
+    for (let i = 0; i < 4; i++) {
+      ctx.fillRect(x + 2 + i * (w / 4), y - 8, w / 4 - 4, 8);
+    }
+
+    // Roof / banner
+    if (isFinal) {
+      ctx.fillStyle = roofColor;
+      ctx.beginPath();
+      ctx.moveTo(x - 4, y);
+      ctx.lineTo(x + w / 2, y - 30);
+      ctx.lineTo(x + w + 4, y);
+      ctx.closePath();
+      ctx.fill();
+      // Star on top
+      drawStar(ctx, x + w / 2, y - 32, 7, '#FFEC99');
+    } else {
+      ctx.fillStyle = roofColor;
+      ctx.fillRect(x + w / 2 - 6, y - 24, 3, 24);
+      // Flag
+      const flagWag = Math.sin(frame * 0.18) * 3;
+      ctx.fillStyle = locked ? '#666' : isBoss ? '#c0392b' : '#fc5185';
+      ctx.beginPath();
+      ctx.moveTo(x + w / 2 - 3, y - 24);
+      ctx.lineTo(x + w / 2 + 18 + flagWag, y - 18);
+      ctx.lineTo(x + w / 2 - 3, y - 12);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Door
+    ctx.fillStyle = trimColor;
+    ctx.fillRect(x + w / 2 - 10, y + h - 22, 20, 22);
+    ctx.fillStyle = '#FFD66B';
+    ctx.beginPath();
+    ctx.arc(x + w / 2 + 6, y + h - 12, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Number badge
+    ctx.fillStyle = locked ? 'rgba(50,50,60,0.85)' : 'rgba(255,255,255,0.92)';
+    ctx.beginPath();
+    ctx.arc(x + 12, y + 14, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = locked ? '#444' : '#3b1f5a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.fillStyle = locked ? 'rgba(255,255,255,0.55)' : '#3b1f5a';
+    ctx.font = 'bold 13px Georgia';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b.label, x + 12, y + 15);
+    ctx.textBaseline = 'alphabetic';
+
+    if (locked) {
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(x, y - 10, w, h + 10);
+      ctx.font = 'bold 12px Georgia';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('LOCKED', x + w / 2, y + h / 2 + 10);
+    }
+
+    if (cleared && !locked) {
+      ctx.font = 'bold 11px Georgia';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('CLEARED', x + w / 2, y + h - 32);
+    }
+
+    ctx.textAlign = 'left';
+  }
+
+  _drawArcadePin(b, x, y, frame, used) {
+    const ctx = this.ctx;
+    const w = b.w;
+    const h = b.h;
+
+    // Tent base
+    ctx.fillStyle = used ? '#888' : '#e74c8a';
+    ctx.fillRect(x, y, w, h);
+    // Stripes
+    ctx.fillStyle = used ? '#aaa' : '#fff';
+    for (let i = 0; i < 4; i++) {
+      ctx.fillRect(x + 4 + i * 22, y, 9, h);
+    }
+
+    // Roof — circus tent
+    ctx.fillStyle = used ? '#666' : '#c0392b';
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y);
+    ctx.lineTo(x + w / 2, y - 28);
+    ctx.lineTo(x + w + 6, y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Flag
+    const wag = Math.sin(frame * 0.2 + b.x) * 2;
+    ctx.fillStyle = used ? '#666' : '#FFD66B';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y - 28);
+    ctx.lineTo(x + w / 2 + 14 + wag, y - 22);
+    ctx.lineTo(x + w / 2, y - 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sign
+    const labelW = 56;
+    ctx.fillStyle = used ? 'rgba(50,50,60,0.85)' : 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.roundRect(x + w / 2 - labelW / 2, y + h - 26, labelW, 20, 6);
+    ctx.fill();
+    ctx.strokeStyle = used ? '#555' : '#a83a06';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.font = 'bold 11px Georgia';
+    ctx.fillStyle = used ? 'rgba(255,255,255,0.5)' : '#a83a06';
+    ctx.textAlign = 'center';
+    ctx.fillText(b.label, x + w / 2, y + h - 12);
+    ctx.textAlign = 'left';
+
+    if (used) {
+      ctx.font = 'bold 10px Georgia';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.textAlign = 'center';
+      ctx.fillText('PLAYED', x + w / 2, y + h + 14);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  _drawPrompt(ctx, text, cx, cy, frame) {
+    ctx.font = 'bold 15px Georgia';
+    const tw = ctx.measureText(text).width;
+    const pad = 14;
+    const bw = tw + pad * 2;
+    const bh = 30;
+    const pulse = 0.85 + Math.sin(frame * 0.18) * 0.12;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = 'rgba(33, 18, 66, 0.92)';
+    ctx.strokeStyle = '#FFD66B';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 9);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, cx, cy);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
     ctx.restore();
   }
 
@@ -1373,105 +1642,398 @@ export class Renderer {
     const m = game.mini;
     if (!m) return;
 
-    ctx.fillStyle = '#1e1e2e';
+    if (m.kind === 'slot') this._renderSlot(game, m);
+    else if (m.kind === 'claw') this._renderClaw(game, m);
+    else if (m.kind === 'hoops') this._renderHoops(game, m);
+
+    ctx.font = '12px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.textAlign = 'center';
+    ctx.fillText('A — advance · M / Esc / L — exit arcade', W / 2, H - 18);
+    ctx.textAlign = 'left';
+  }
+
+  _renderSlot(game, m) {
+    const ctx = this.ctx;
+    const frame = game.frame;
+
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#3b1f5a');
+    bg.addColorStop(1, '#1a0a2e');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.font = 'bold 22px Georgia';
-    ctx.fillStyle = '#feca57';
+    // Title
+    ctx.font = 'bold 26px Georgia';
+    ctx.fillStyle = '#FFD66B';
     ctx.textAlign = 'center';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.fillText('SLOT MACHINE', W / 2, 68);
+    ctx.shadowOffsetY = 0;
 
-    if (m.kind === 'slot') {
-      ctx.fillText('Slot Shrine', W / 2, 56);
-      ctx.font = '15px Georgia';
-      ctx.fillStyle = '#dfe6e9';
-      ctx.fillText(m.phase === 'prompt' ? 'Jump — spin the reels' : 'Good luck…', W / 2, 86);
+    // Cabinet
+    const cabX = 36;
+    const cabY = 110;
+    const cabW = W - 72;
+    const cabH = 360;
+    ctx.fillStyle = '#9a4dba';
+    ctx.beginPath();
+    ctx.roundRect(cabX, cabY, cabW, cabH, 16);
+    ctx.fill();
+    ctx.strokeStyle = '#FFD66B';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.lineWidth = 1;
 
-      const sym = ['♠', '♥', '★', '♦', '✦'];
-      const boxY = H / 2 - 40;
-      for (let i = 0; i < 3; i++) {
-        ctx.fillStyle = '#2f3542';
-        ctx.fillRect(W / 2 - 150 + i * 95, boxY, 78, 92);
-        ctx.strokeStyle = '#576574';
-        ctx.strokeRect(W / 2 - 150 + i * 95, boxY, 78, 92);
-        ctx.font = 'bold 42px Georgia';
-        ctx.fillStyle = '#fff';
-        ctx.fillText(sym[m.reels[i] % 5], W / 2 - 111 + i * 95, boxY + 62);
-      }
-
-      if (m.phase === 'result') {
-        ctx.font = 'bold 18px Georgia';
-        ctx.fillStyle = m.win ? '#2ecc71' : '#dcdde1';
-        ctx.fillText(m.win ? 'Jackpot! +1 life' : 'Nice try — coins added', W / 2, boxY + 130);
-        ctx.font = '13px Georgia';
-        ctx.fillStyle = '#95afc0';
-        ctx.fillText('Jump — exit', W / 2, boxY + 156);
-      }
-    } else if (m.kind === 'claw') {
-      ctx.fillText('Claw Parlor', W / 2, 56);
-      ctx.font = '14px Georgia';
-      ctx.fillStyle = '#dfe6e9';
-      ctx.fillText(
-        m.phase === 'aim' ? 'Jump — drop when centered over the prize lane' : '…',
-        W / 2,
-        84
-      );
-
-      ctx.fillStyle = 'rgba(46,204,113,0.25)';
-      ctx.fillRect(W * 0.38, m.dropY - 20 + (m.phase === 'aim' ? 0 : 0), W * 0.24, 36);
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-      ctx.strokeRect(W * 0.38, m.dropY - 20, W * 0.24, 36);
-
-      ctx.strokeStyle = '#feca57';
-      ctx.lineWidth = 4;
+    // Marquee bulbs
+    for (let i = 0; i < 11; i++) {
+      const lit = (frame + i * 6) % 24 < 12;
+      ctx.fillStyle = lit ? '#FFD66B' : '#5a3577';
       ctx.beginPath();
-      ctx.moveTo(m.x, 120);
-      ctx.lineTo(m.x, m.y);
-      ctx.stroke();
+      ctx.arc(cabX + 22 + i * 28, cabY + 16, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Reel window
+    const reelW = 76;
+    const reelH = 156;
+    const gap = 14;
+    const totalW = reelW * 3 + gap * 2;
+    const reelStartX = W / 2 - totalW / 2;
+    const reelY = cabY + 50;
+
+    ctx.fillStyle = '#100022';
+    ctx.fillRect(reelStartX - 8, reelY - 8, totalW + 16, reelH + 16);
+
+    const symbols = ['♠', '♥', '★', '♦', '✦'];
+    const symColors = ['#fc5185', '#ef476f', '#FFD66B', '#06d6a0', '#118ab2'];
+
+    for (let i = 0; i < 3; i++) {
+      const rx = reelStartX + i * (reelW + gap);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rx, reelY, reelW, reelH);
+      ctx.clip();
+
+      const scroll = m.scroll[i];
+      const itemH = reelH;
+      const yOffset = -scroll * itemH * SLOT_SYMBOLS_COUNT;
+
+      for (let s = -1; s < SLOT_SYMBOLS_COUNT + 1; s++) {
+        const idx = ((s % SLOT_SYMBOLS_COUNT) + SLOT_SYMBOLS_COUNT) % SLOT_SYMBOLS_COUNT;
+        let cellY = reelY + yOffset + s * itemH;
+        cellY = ((cellY - reelY) % (itemH * SLOT_SYMBOLS_COUNT) + itemH * SLOT_SYMBOLS_COUNT) % (itemH * SLOT_SYMBOLS_COUNT) + reelY - itemH;
+
+        ctx.fillStyle = idx % 2 === 0 ? '#f6e58d' : '#fff7c2';
+        ctx.fillRect(rx, cellY, reelW, itemH);
+        ctx.fillStyle = symColors[idx];
+        ctx.font = 'bold 64px Georgia';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(symbols[idx], rx + reelW / 2, cellY + itemH / 2);
+      }
+      ctx.restore();
+
+      // Reel frame
+      ctx.strokeStyle = '#FFD66B';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rx, reelY, reelW, reelH);
       ctx.lineWidth = 1;
-      ctx.fillStyle = '#e84118';
-      ctx.fillRect(m.x - 16, m.y, 32, 22);
+    }
+    // Center payline
+    ctx.strokeStyle = 'rgba(255,80,80,0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(reelStartX - 12, reelY + reelH / 2);
+    ctx.lineTo(reelStartX + totalW + 12, reelY + reelH / 2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
 
-      if (m.phase === 'done' || m.phase === 'lift') {
-        ctx.font = 'bold 17px Georgia';
-        ctx.fillStyle = m.win ? '#2ecc71' : '#dcdde1';
-        ctx.fillText(m.win ? 'Grabbed the royal plush!' : 'Close — keep the pity coins', W / 2, H - 120);
-      }
-    } else if (m.kind === 'hoops') {
-      ctx.fillText('Courtside Hoops', W / 2, 52);
-      ctx.font = '14px Georgia';
-      ctx.fillStyle = '#dfe6e9';
-      ctx.fillText('Jump — shoot when the meter feels right', W / 2, 78);
+    // Lever
+    ctx.fillStyle = '#bdc3c7';
+    ctx.fillRect(cabX + cabW - 24, cabY + 70, 8, 110);
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.arc(cabX + cabW - 20, cabY + 70 - 8, 12, 0, Math.PI * 2);
+    ctx.fill();
 
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 3;
+    // Status
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 18px Georgia';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    if (m.phase === 'prompt') {
+      const pulse = 0.6 + 0.4 * Math.sin(frame * 0.18);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#FFD66B';
+      ctx.fillText('Press A to spin', W / 2, cabY + cabH - 24);
+      ctx.globalAlpha = 1;
+    } else if (m.phase === 'spin') {
+      ctx.fillText('Spinning…', W / 2, cabY + cabH - 24);
+    } else {
+      const msg =
+        m.winType === 'jackpot'
+          ? 'JACKPOT! +1 life'
+          : m.winType === 'pair'
+            ? 'Pair! Bonus coins'
+            : 'No match — small consolation';
+      ctx.fillStyle = m.win ? '#7bed9f' : '#dfe6e9';
+      ctx.fillText(msg, W / 2, cabY + cabH - 24);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  _renderClaw(game, m) {
+    const ctx = this.ctx;
+
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0a4a6a');
+    bg.addColorStop(1, '#03283a');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.font = 'bold 26px Georgia';
+    ctx.fillStyle = '#FFD66B';
+    ctx.textAlign = 'center';
+    ctx.fillText('CLAW MACHINE', W / 2, 64);
+
+    const caseX = 28;
+    const caseY = 100;
+    const caseW = W - 56;
+    const caseH = 360;
+
+    // Glass
+    ctx.fillStyle = 'rgba(180, 220, 255, 0.16)';
+    ctx.fillRect(caseX, caseY, caseW, caseH);
+    ctx.strokeStyle = '#39c5f3';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(caseX, caseY, caseW, caseH);
+    ctx.lineWidth = 1;
+
+    // Top mechanism rail
+    ctx.fillStyle = '#3b6f8f';
+    ctx.fillRect(caseX, caseY, caseW, 18);
+
+    // Prize bin (drop hole)
+    ctx.fillStyle = '#0a2438';
+    ctx.fillRect(m.prizeLane.l, m.dropY + 10, m.prizeLane.r - m.prizeLane.l, 26);
+    ctx.strokeStyle = '#39c5f3';
+    ctx.strokeRect(m.prizeLane.l, m.dropY + 10, m.prizeLane.r - m.prizeLane.l, 26);
+    ctx.fillStyle = 'rgba(255, 214, 107, 0.28)';
+    ctx.fillRect(m.prizeLane.l + 4, m.dropY + 14, m.prizeLane.r - m.prizeLane.l - 8, 18);
+
+    // Plushies on the floor
+    const plushPalette = ['#fc5185', '#FFD66B', '#7bed9f', '#a29bfe', '#ff7675'];
+    const floorY = caseY + caseH - 36;
+    for (let i = 0; i < 8; i++) {
+      const px = caseX + 24 + i * ((caseW - 48) / 7);
+      if (px > m.prizeLane.l - 10 && px < m.prizeLane.r + 10) continue;
+      const c = plushPalette[i % plushPalette.length];
+      ctx.fillStyle = c;
       ctx.beginPath();
-      ctx.arc(W - 118, 268, 34, Math.PI * 0.1, Math.PI * 0.9);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.fillRect(W - 138, 278, 44, 8);
+      ctx.arc(px, floorY + 10, 16, Math.PI, 0);
+      ctx.lineTo(px + 16, floorY + 28);
+      ctx.lineTo(px - 16, floorY + 28);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(px - 5, floorY + 6, 2, 0, Math.PI * 2);
+      ctx.arc(px + 5, floorY + 6, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-      ctx.fillStyle = '#ffa502';
-      ctx.fillRect(40, H - 165, 220, 14);
-      ctx.fillStyle = '#ff6348';
-      ctx.fillRect(40, H - 165, 220 * m.meter, 14);
+    // Cable + claw
+    const clawX = m.x;
+    const clawY = m.y;
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(clawX, caseY + 18);
+    ctx.lineTo(clawX, clawY);
+    ctx.stroke();
+    // Claw head
+    ctx.fillStyle = '#bdc3c7';
+    ctx.fillRect(clawX - 18, clawY, 36, 8);
+    // Pincers
+    const open = m.phase !== 'lift' && m.phase !== 'done';
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(clawX - 14, clawY + 8);
+    ctx.lineTo(clawX + (open ? -22 : -8), clawY + 22);
+    ctx.moveTo(clawX + 14, clawY + 8);
+    ctx.lineTo(clawX + (open ? 22 : 8), clawY + 22);
+    ctx.stroke();
+    ctx.lineWidth = 1;
 
-      if (m.ball) {
-        ctx.fillStyle = '#ff9ff3';
+    // Holding a prize
+    if (m.win && (m.phase === 'lift' || m.phase === 'done')) {
+      ctx.fillStyle = m.prizeKind === 'heart' ? '#ff4466' : '#FFD66B';
+      ctx.beginPath();
+      ctx.arc(clawX, clawY + 24, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Georgia';
+    ctx.textAlign = 'center';
+    if (m.phase === 'aim') {
+      ctx.fillStyle = '#FFD66B';
+      ctx.fillText('Press A to drop the claw', W / 2, caseY + caseH + 26);
+    } else if (m.phase === 'done') {
+      ctx.fillStyle = m.win ? '#7bed9f' : '#dfe6e9';
+      ctx.fillText(
+        m.win
+          ? m.prizeKind === 'heart'
+            ? 'Plushie Heart! +1 life'
+            : 'Bonus prize!'
+          : 'Just missed — small payout',
+        W / 2,
+        caseY + caseH + 26
+      );
+    }
+    ctx.textAlign = 'left';
+  }
+
+  _renderHoops(game, m) {
+    const ctx = this.ctx;
+
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#dd9c4a');
+    bg.addColorStop(0.65, '#c47e2c');
+    bg.addColorStop(1, '#7e4615');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.font = 'bold 26px Georgia';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#5b2a05';
+    ctx.shadowOffsetY = 2;
+    ctx.fillText('HOOPS', W / 2, 60);
+    ctx.shadowOffsetY = 0;
+
+    // Court line
+    const floorY = HOOPS_GEOM.floorY;
+    ctx.fillStyle = '#5b2a05';
+    ctx.fillRect(0, floorY, W, H - floorY);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, floorY, W, 3);
+    // Free throw arc
+    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(W * 0.5, floorY, 90, Math.PI, 0);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // Backboard
+    const hx = HOOPS_GEOM.hoopX;
+    const hy = HOOPS_GEOM.hoopY;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(hx + HOOPS_GEOM.hoopR + 2, hy - 56, 12, 90);
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(hx + HOOPS_GEOM.hoopR + 2, hy - 14, 12, 26);
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(hx + HOOPS_GEOM.hoopR + 2, hy - 56, 12, 90);
+    ctx.lineWidth = 1;
+
+    // Hoop ring
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(hx - HOOPS_GEOM.hoopR, hy);
+    ctx.lineTo(hx + HOOPS_GEOM.hoopR, hy);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // Net
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const t = i / 5;
+      const x1 = hx - HOOPS_GEOM.hoopR + t * HOOPS_GEOM.hoopR * 2;
+      ctx.moveTo(x1, hy);
+      ctx.lineTo(hx + (t - 0.5) * HOOPS_GEOM.hoopR * 1.4, hy + 24);
+    }
+    ctx.stroke();
+
+    // Trail
+    if (m.trail && m.trail.length) {
+      for (let i = 0; i < m.trail.length; i++) {
+        const t = i / m.trail.length;
+        const p = m.trail[i];
+        ctx.fillStyle = `rgba(255, 159, 67, ${0.05 + t * 0.45})`;
         ctx.beginPath();
-        ctx.arc(m.ball.x, m.ball.y, 11, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 4 + t * 6, 0, Math.PI * 2);
         ctx.fill();
-      }
-
-      if (m.phase === 'done') {
-        ctx.font = 'bold 17px Georgia';
-        ctx.fillStyle = m.win ? '#2ecc71' : '#dcdde1';
-        ctx.fillText(m.win ? 'Swish! Bonus royal points' : 'Bank shot banked… small prize', W / 2, H - 110);
       }
     }
 
-    ctx.font = '12px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText('L — exit arcade · Jump advances', W / 2, H - 20);
+    // Ball
+    if (m.ball) {
+      ctx.fillStyle = '#e67e22';
+      ctx.beginPath();
+      ctx.arc(m.ball.x, m.ball.y, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(m.ball.x, m.ball.y, 11, 0, Math.PI * 2);
+      ctx.moveTo(m.ball.x - 11, m.ball.y);
+      ctx.lineTo(m.ball.x + 11, m.ball.y);
+      ctx.moveTo(m.ball.x, m.ball.y - 11);
+      ctx.lineTo(m.ball.x, m.ball.y + 11);
+      ctx.stroke();
+    } else {
+      // Ball at feet
+      ctx.fillStyle = '#e67e22';
+      ctx.beginPath();
+      ctx.arc(70, floorY - 14, 11, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Power meter (vertical, more readable)
+    const meterX = 36;
+    const meterY = 130;
+    const meterH = 280;
+    const meterW = 26;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(meterX, meterY, meterW, meterH);
+    const fillH = meterH * m.meter;
+    const grad = ctx.createLinearGradient(0, meterY + meterH, 0, meterY);
+    grad.addColorStop(0, '#06d6a0');
+    grad.addColorStop(0.6, '#FFD66B');
+    grad.addColorStop(1, '#ef476f');
+    ctx.fillStyle = grad;
+    ctx.fillRect(meterX, meterY + meterH - fillH, meterW, fillH);
+    ctx.strokeStyle = '#fff';
+    ctx.strokeRect(meterX, meterY, meterW, meterH);
+    // Sweet-spot marker
+    const sweetY = meterY + meterH - meterH * 0.78;
+    ctx.strokeStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(meterX - 6, sweetY);
+    ctx.lineTo(meterX + meterW + 6, sweetY);
+    ctx.stroke();
+
+    ctx.font = 'bold 16px Georgia';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    if (m.phase === 'aim') {
+      const pulse = 0.7 + 0.3 * Math.sin(game.frame * 0.2);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#fff';
+      ctx.fillText('Press A to shoot', W / 2, H - 80);
+      ctx.globalAlpha = 1;
+    } else if (m.phase === 'done') {
+      ctx.fillStyle = m.win ? '#7bed9f' : '#fff';
+      ctx.fillText(m.win ? 'SWISH! Bonus points' : 'Air ball — small payout', W / 2, H - 80);
+    }
     ctx.textAlign = 'left';
   }
 }

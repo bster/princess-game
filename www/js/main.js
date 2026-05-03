@@ -95,6 +95,7 @@ function render() {
     case 'overworld':
       renderer.renderOverworld(game);
       renderer.renderWorldHud(game);
+      renderer.renderControls(input, { showUp: true });
       break;
 
     case 'minigame':
@@ -117,8 +118,8 @@ function render() {
       }
       renderer.renderHUD(game);
       renderer.renderAbilityFanfare(game);
-      if (game.state === 'playing' && !game.player.dead) {
-        renderer.renderControls();
+      if (game.state === 'playing' && game.player && !game.player.dead) {
+        renderer.renderControls(input, { showUp: false });
       }
       break;
   }

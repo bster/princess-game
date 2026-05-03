@@ -24,6 +24,18 @@ function clamp(v, a, b) {
   return Math.max(a, Math.min(b, v));
 }
 
+/** Visual style hints per stage (looped if more levels than entries). */
+const STAGE_THEMES = [
+  { theme: 'meadow' },
+  { theme: 'sunset' },
+  { theme: 'cavern' },
+  { theme: 'sky' },
+  { theme: 'fortress', boss: true },
+  { theme: 'meadow' },
+  { theme: 'sunset' },
+  { theme: 'castle', final: true },
+];
+
 /** @returns {object[]} */
 export function getOwBuildings() {
   const n = getLevelCount();
@@ -31,21 +43,25 @@ export function getOwBuildings() {
   const levels = [];
   for (let i = 0; i < spots.length; i++) {
     const [x, y] = spots[i];
+    const theme = STAGE_THEMES[i] || { theme: 'meadow' };
     levels.push({
       kind: 'level',
       levelIndex: i,
       x,
       y,
-      w: 76,
-      h: 58,
+      w: 78,
+      h: 70,
       label: String(i + 1),
+      theme: theme.theme,
+      boss: !!theme.boss,
+      final: !!theme.final,
     });
   }
 
   const minis = [
-    { kind: 'minigame', id: 'slot', x: 540, y: 1140, w: 92, h: 68, label: 'Slots' },
-    { kind: 'minigame', id: 'claw', x: 520, y: 780, w: 92, h: 68, label: 'Claw' },
-    { kind: 'minigame', id: 'hoops', x: 540, y: 520, w: 96, h: 70, label: 'Hoops' },
+    { kind: 'minigame', id: 'slot', x: 540, y: 1140, w: 96, h: 72, label: 'Slots', icon: 'slot' },
+    { kind: 'minigame', id: 'claw', x: 520, y: 780, w: 96, h: 72, label: 'Claw', icon: 'claw' },
+    { kind: 'minigame', id: 'hoops', x: 540, y: 520, w: 96, h: 72, label: 'Hoops', icon: 'hoops' },
   ];
 
   return [...levels, ...minis];
