@@ -8,27 +8,40 @@ function hitRect(px, py, r) {
   return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
 }
 
-export function getTitleUi(hasSave) {
-  const panelW = 142;
-  const panelH = 188;
-  const panelY = 212;
-  const midGap = 14;
-  const leftX = W / 2 - panelW - midGap / 2;
-  const rightX = W / 2 + midGap / 2;
+export const TITLE_LAYOUT = {
+  titleY: 78,
+  subtitleY: 116,
+  panelY: 154,
+  panelW: 158,
+  panelH: 246,
+  midGap: 18,
+  missionY: 422,
+  buttonStartY: 458,
+  buttonW: W - 56,
+  buttonH: 56,
+  buttonGap: 14,
+  footerY: H - 28,
+  medalsY: H - 60,
+};
 
-  let yBtn = 428;
+export function getTitleUi(hasSave) {
+  const t = TITLE_LAYOUT;
+  const leftX = W / 2 - t.panelW - t.midGap / 2;
+  const rightX = W / 2 + t.midGap / 2;
+
+  let y = t.buttonStartY;
   const buttons = [];
   if (hasSave) {
-    buttons.push({ id: 'continue', x: 28, y: yBtn, w: W - 56, h: 42 });
-    yBtn += 50;
+    buttons.push({ id: 'continue', x: 28, y, w: t.buttonW, h: t.buttonH });
+    y += t.buttonH + t.buttonGap;
   }
-  buttons.push({ id: 'newGame', x: 28, y: yBtn, w: W - 56, h: 42 });
-  yBtn += 50;
-  buttons.push({ id: 'leaderboard', x: 28, y: yBtn, w: W - 56, h: 38 });
+  buttons.push({ id: 'newGame', x: 28, y, w: t.buttonW, h: t.buttonH });
+  y += t.buttonH + t.buttonGap;
+  buttons.push({ id: 'leaderboard', x: 28, y, w: t.buttonW, h: t.buttonH });
 
   return {
-    princessPanel: { x: leftX, y: panelY, w: panelW, h: panelH },
-    frankPanel: { x: rightX, y: panelY, w: panelW, h: panelH },
+    princessPanel: { x: leftX, y: t.panelY, w: t.panelW, h: t.panelH },
+    frankPanel: { x: rightX, y: t.panelY, w: t.panelW, h: t.panelH },
     buttons,
   };
 }

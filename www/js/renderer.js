@@ -39,7 +39,7 @@ import { drawTiara } from './sprites/tiara';
 import { drawPowerUpOrb, drawAbilityHUD } from './sprites/powerupIcons';
 import { hasRunSave } from './progressSave';
 import { getLeaderboardTop } from './leaderboard';
-import { getTitleUi } from './ui/titleLayout';
+import { getTitleUi, TITLE_LAYOUT } from './ui/titleLayout';
 import * as Ow from './overworld/overworldMap';
 import { MAP_EXIT_BTN } from './ui/mapExitUi';
 import { TOUCH_LAYOUT } from './input';
@@ -864,176 +864,188 @@ export class Renderer {
     const hasSave = hasRunSave();
     const ui = getTitleUi(hasSave);
     const cursor = game.selectCursor;
+    const t = TITLE_LAYOUT;
 
+    // Sky
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#1a5276');
-    grad.addColorStop(0.3, '#2e86c1');
-    grad.addColorStop(0.6, '#85c1e9');
-    grad.addColorStop(1, '#d6eaf8');
+    grad.addColorStop(0, '#1f3a8a');
+    grad.addColorStop(0.55, '#5b8def');
+    grad.addColorStop(1, '#9ec6ff');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    const tsg = ctx.createRadialGradient(310, 85, 10, 310, 85, 100);
-    tsg.addColorStop(0, 'rgba(255,250,220,0.35)');
-    tsg.addColorStop(1, 'rgba(255,230,180,0)');
-    ctx.fillStyle = tsg;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(255,250,230,0.9)';
-    ctx.beginPath();
-    ctx.arc(310, 85, 22, 0, Math.PI * 2);
-    ctx.fill();
+    // Soft drifting clouds
+    ctx.globalAlpha = 0.65;
+    drawCloud(ctx, ((frame * 0.22) % (W + 200)) - 80, 60, 64);
+    drawCloud(ctx, ((frame * 0.13 + 220) % (W + 200)) - 80, 110, 50);
+    drawCloud(ctx, ((frame * 0.18 + 80) % (W + 200)) - 80, 740, 70);
+    ctx.globalAlpha = 1;
 
-    drawCloud(ctx, 40, 95, 70);
-    drawCloud(ctx, 260, 72, 55);
-    drawCloud(ctx, 330, 125, 65);
+    // Subtle bottom haze for separation
+    const haze = ctx.createLinearGradient(0, H - 160, 0, H);
+    haze.addColorStop(0, 'rgba(0,0,0,0)');
+    haze.addColorStop(1, 'rgba(15,15,40,0.4)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, H - 160, W, 160);
 
-    ctx.fillStyle = '#E8C252';
-    ctx.fillRect(0, H - 118, W, 3);
-    ctx.fillStyle = this.brickPattern;
-    ctx.fillRect(0, H - 115, W, 115);
+    // ---- Title block ----
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
 
-    drawGoblin(ctx, W * 0.08, H - 156, frame, false);
-    drawGoblin(ctx, W * 0.92, H - 156, frame, false);
-
-    const pulse = 1 + Math.sin(frame * 0.03) * 0.04;
-    ctx.save();
-    ctx.translate(W / 2, 132);
-    ctx.scale(pulse, pulse);
-    ctx.font = 'bold 36px Georgia';
+    ctx.shadowColor = 'rgba(0,0,0,0.65)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 3;
+    ctx.font = 'bold 38px Georgia';
     ctx.fillStyle = C.crown;
-    ctx.textAlign = 'center';
-    ctx.shadowColor = '#c0392b';
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
-    ctx.fillText('Princess', 0, 0);
-    ctx.fillText('& Frank', 0, 40);
-    ctx.shadowOffsetX = 0;
+    ctx.fillText('Princess & Frank', W / 2, t.titleY);
+    ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
-    ctx.restore();
 
-    ctx.font = '14px Georgia';
+    ctx.font = '15px Georgia';
     ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.fillText('Runs start on the kingdom map — choose a hero, then enter towers from the world.', W / 2, 178);
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowOffsetY = 1;
+    ctx.fillText('Save the Pug — Kingdom Adventure', W / 2, t.subtitleY);
+    ctx.shadowOffsetY = 0;
+    ctx.shadowColor = 'transparent';
 
-    const drawHeroPanel = (r, selected, drawStuff) => {
-      const ps = selected ? 1 + Math.sin(frame * 0.08) * 0.035 : 1;
+    // ---- Hero panels ----
+    const drawHeroPanel = (panel, selected, label, sublabel, drawSprite) => {
+      const ps = selected ? 1 + Math.sin(frame * 0.08) * 0.025 : 1;
       ctx.save();
-      ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
+      ctx.translate(panel.x + panel.w / 2, panel.y + panel.h / 2);
       ctx.scale(ps, ps);
-      ctx.translate(-(r.x + r.w / 2), -(r.y + r.h / 2));
-      if (selected) {
-        ctx.fillStyle = 'rgba(255,215,0,0.28)';
-        ctx.strokeStyle = C.crown;
-        ctx.lineWidth = 3;
-      } else {
-        ctx.fillStyle = 'rgba(255,255,255,0.07)';
-        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-        ctx.lineWidth = 2;
-      }
+      ctx.translate(-(panel.x + panel.w / 2), -(panel.y + panel.h / 2));
+
+      // Card background
+      ctx.fillStyle = selected ? 'rgba(20, 30, 70, 0.7)' : 'rgba(20, 30, 70, 0.45)';
       ctx.beginPath();
-      ctx.roundRect(r.x, r.y, r.w, r.h, 12);
+      ctx.roundRect(panel.x, panel.y, panel.w, panel.h, 14);
       ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-      drawStuff();
-    };
-
-    drawHeroPanel(ui.princessPanel, cursor === 0, () => {
-      drawPrincess(
-        ctx,
-        ui.princessPanel.x + ui.princessPanel.w / 2,
-        ui.princessPanel.y + ui.princessPanel.h - 36,
-        1,
-        frame,
-        false
-      );
-      ctx.font = 'bold 15px Georgia';
-      ctx.fillStyle = cursor === 0 ? '#fff' : 'rgba(255,255,255,0.55)';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        'Princess',
-        ui.princessPanel.x + ui.princessPanel.w / 2,
-        ui.princessPanel.y + ui.princessPanel.h - 8
-      );
-    });
-
-    drawHeroPanel(ui.frankPanel, cursor === 1, () => {
-      drawFrank(
-        ctx,
-        ui.frankPanel.x + ui.frankPanel.w / 2 - 10,
-        ui.frankPanel.y + ui.frankPanel.h - 52,
-        frame,
-        true
-      );
-      ctx.font = 'bold 15px Georgia';
-      ctx.fillStyle = cursor === 1 ? '#fff' : 'rgba(255,255,255,0.55)';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        'Frank',
-        ui.frankPanel.x + ui.frankPanel.w / 2,
-        ui.frankPanel.y + ui.frankPanel.h - 8
-      );
-    });
-
-    ctx.textAlign = 'center';
-    ctx.font = '13px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(
-      cursor === 0 ? 'Mission: rescue Frank' : 'Mission: rescue the Princess',
-      W / 2,
-      ui.princessPanel.y + ui.princessPanel.h + 22
-    );
-
-    const drawBtn = (b, label, sub, accent) => {
-      ctx.fillStyle = accent ? 'rgba(46,204,113,0.35)' : 'rgba(255,255,255,0.12)';
-      ctx.strokeStyle = accent ? 'rgba(46,204,113,0.9)' : 'rgba(255,255,255,0.35)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = selected ? C.crown : 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = selected ? 4 : 2;
       ctx.beginPath();
-      ctx.roundRect(b.x, b.y, b.w, b.h, 10);
-      ctx.fill();
+      ctx.roundRect(panel.x, panel.y, panel.w, panel.h, 14);
       ctx.stroke();
-      ctx.font = 'bold 17px Georgia';
+      ctx.lineWidth = 1;
+
+      // Sprite area (top 75%)
+      drawSprite(panel);
+
+      // Name label
+      ctx.font = 'bold 18px Georgia';
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'center';
-      ctx.fillText(label, b.x + b.w / 2, b.y + 26);
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowOffsetY = 1;
+      ctx.fillText(label, panel.x + panel.w / 2, panel.y + panel.h - 32);
+      ctx.shadowOffsetY = 0;
+      ctx.shadowColor = 'transparent';
+
+      ctx.font = '12px Georgia';
+      ctx.fillStyle = selected ? '#FFE08A' : 'rgba(255,255,255,0.7)';
+      ctx.fillText(sublabel, panel.x + panel.w / 2, panel.y + panel.h - 14);
+
+      ctx.restore();
+    };
+
+    drawHeroPanel(ui.princessPanel, cursor === 0, 'Princess', 'Royal hero', (panel) => {
+      drawPrincess(
+        ctx,
+        panel.x + panel.w / 2,
+        panel.y + panel.h - 80,
+        1,
+        frame,
+        false,
+        false,
+        1.2,
+        1.2
+      );
+    });
+
+    drawHeroPanel(ui.frankPanel, cursor === 1, 'Frank', 'Brave pug', (panel) => {
+      drawFrank(ctx, panel.x + panel.w / 2 - 10, panel.y + panel.h - 90, frame, true);
+    });
+
+    // Mission line
+    ctx.textAlign = 'center';
+    ctx.font = '14px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowOffsetY = 1;
+    ctx.fillText(
+      cursor === 0 ? 'Rescue Frank from the Goblin King' : 'Rescue the Princess from the Goblin King',
+      W / 2,
+      t.missionY
+    );
+    ctx.shadowOffsetY = 0;
+    ctx.shadowColor = 'transparent';
+
+    // ---- Buttons ----
+    const drawBtn = (b, label, sub, variant) => {
+      const isPrimary = variant === 'primary';
+      const isAccent = variant === 'accent';
+      const fillTop = isAccent ? '#2ecc71' : isPrimary ? '#FFD66B' : 'rgba(255,255,255,0.12)';
+      const fillBot = isAccent ? '#16a34a' : isPrimary ? '#e0a915' : 'rgba(255,255,255,0.05)';
+      const stroke = isAccent ? '#0c5e2c' : isPrimary ? '#7a4f00' : 'rgba(255,255,255,0.5)';
+      const textColor = isAccent || isPrimary ? '#1b1535' : '#fff';
+
+      const bgGrad = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+      bgGrad.addColorStop(0, fillTop);
+      bgGrad.addColorStop(1, fillBot);
+      ctx.fillStyle = bgGrad;
+      ctx.beginPath();
+      ctx.roundRect(b.x, b.y, b.w, b.h, 14);
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 19px Georgia';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2 + (sub ? -4 : 6));
       if (sub) {
-        ctx.font = '11px Georgia';
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.fillText(sub, b.x + b.w / 2, b.y + 38);
+        ctx.font = '12px Georgia';
+        ctx.fillStyle = isAccent || isPrimary ? 'rgba(27,21,53,0.7)' : 'rgba(255,255,255,0.65)';
+        ctx.fillText(sub, b.x + b.w / 2, b.y + b.h / 2 + 16);
       }
     };
 
     for (const b of ui.buttons) {
-      if (b.id === 'continue') drawBtn(b, 'Continue run', 'Kingdom map hub · resume run', true);
+      if (b.id === 'continue') drawBtn(b, 'Continue Run', 'Resume on the kingdom map', 'accent');
       else if (b.id === 'newGame')
         drawBtn(
           b,
-          'New adventure',
-          hasSave ? 'Clears save · fresh map' : `Kingdom map hub · ${game.levelManager.totalLevels} towers`,
-          false
+          'New Adventure',
+          hasSave
+            ? 'Clears save · start fresh'
+            : `${game.levelManager.totalLevels} stages · 3 mini-games`,
+          'primary'
         );
-      else if (b.id === 'leaderboard') drawBtn(b, 'Leaderboard', 'Local hall of fame', false);
+      else if (b.id === 'leaderboard') drawBtn(b, 'Leaderboard', null, 'plain');
     }
 
-    ctx.textAlign = 'center';
-    ctx.font = '12px Georgia';
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(
-      'Hero: arrows · Space new run → map · C continue → map · L leaderboard',
-      W / 2,
-      H - 22
-    );
-
+    // ---- Footer ----
     const earned = game.medalManager.getTotalEarned();
     if (earned > 0) {
       const total = game.medalManager.getTotalPossible();
-      const medalY = H - 52;
-      drawStar(ctx, W / 2 - 36, medalY, 8, '#FFD700');
+      const label = `${earned} / ${total} medals`;
       ctx.font = '13px Georgia';
-      ctx.fillStyle = earned >= total ? '#FFD700' : 'rgba(255,215,0,0.75)';
-      ctx.fillText(earned + ' / ' + total + ' medals', W / 2 + 12, medalY + 4);
+      const tw = ctx.measureText(label).width;
+      const totalW = tw + 22;
+      const startX = W / 2 - totalW / 2;
+      drawStar(ctx, startX + 8, t.medalsY, 8, '#FFD700');
+      ctx.fillStyle = earned >= total ? '#FFD700' : 'rgba(255,215,0,0.85)';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, startX + 22, t.medalsY + 4);
     }
+
+    ctx.textAlign = 'center';
+    ctx.font = '11px Georgia';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText('Tap a hero, then a button · ← → · Space · C · L', W / 2, t.footerY);
 
     ctx.textAlign = 'left';
   }
