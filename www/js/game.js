@@ -784,8 +784,9 @@ export class Game {
     const enemyMid = ey + enemy.h * 0.5;
 
     if (player.vy > 0 && playerBottom < enemyMid + 5) {
-      // Stomp!
-      const killed = enemy.takeDamage(1);
+      // Stomp! Mario rule: any non-boss enemy dies in one stomp.
+      const stompDmg = enemy.type === 'boss' ? 1 : 999;
+      const killed = enemy.takeDamage(stompDmg);
       player.stomp();
       if (killed) {
         if (this.stompChainTimer > 0) this.stompChain++;
