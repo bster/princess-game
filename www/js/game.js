@@ -22,6 +22,7 @@ import { hitTestTitle, hitTestLeaderboardBack } from './ui/titleLayout';
 import * as Ow from './overworld/overworldMap';
 import { createMiniState, tickMini } from './minigames/arcadeMinigames';
 import { hitTestMapExit } from './ui/mapExitUi';
+import { hitLevelClear, hitGameOver, hitVictory } from './ui/postStateButtons';
 
 const POWER_FANFARE = {
   fire: {
@@ -360,7 +361,12 @@ export class Game {
   _updateLevelComplete(input) {
     this.levelCompleteTimer++;
     this.particles.update();
-    if (this.levelCompleteTimer > 180 && input.jumpEdge) {
+    const tap = input.consumeTap();
+    const ready = this.levelCompleteTimer > 150;
+    const advance =
+      ready &&
+      ((tap && hitLevelClear(tap.x, tap.y)) || input.jumpEdge || input.fireEdge);
+    if (advance) {
       const total = this.levelManager.totalLevels;
       const completed = this.levelIndex;
       if (completed < total - 1) {
@@ -369,6 +375,7 @@ export class Game {
         const nodeId = Ow.getNodeIdForLevel(this.levelIndex);
         this.ow = Ow.createOwState(nodeId, this.ow?.facing ?? 1);
         this.state = 'overworld';
+        this.audio.play('uiSelect');
         ProgressSave.saveRun(this._runPayload());
       } else {
         this.state = 'victory';
@@ -380,8 +387,14 @@ export class Game {
   _updateGameOver(input) {
     this.gameOverTimer++;
     if (this.gameOverTimer === 1) this.audio.play('gameover');
-    if (this.gameOverTimer > 85 && input.jumpEdge && !this._gameOverPrompted) {
+    const tap = input.consumeTap();
+    const ready = this.gameOverTimer > 70;
+    const advance =
+      ready &&
+      ((tap && hitGameOver(tap.x, tap.y)) || input.jumpEdge || input.fireEdge);
+    if (advance && !this._gameOverPrompted) {
       this._gameOverPrompted = true;
+      this.audio.play('uiSelect');
       const name = window.prompt('Save this score to the leaderboard?', 'Hero');
       if (name !== null) {
         addLeaderboardEntry(name, this.score, this.character);
@@ -399,7 +412,13 @@ export class Game {
     if (this.victoryTimer % 15 === 0 && this.player) {
       this.particles.spawnVictoryHearts(this.player.x, this.player.y - 40);
     }
-    if (this.victoryTimer > 180 && input.jumpEdge) {
+    const tap = input.consumeTap();
+    const ready = this.victoryTimer > 120;
+    const advance =
+      ready &&
+      ((tap && hitVictory(tap.x, tap.y)) || input.jumpEdge || input.fireEdge);
+    if (advance) {
+      this.audio.play('uiSelect');
       const name = window.prompt('Save victory score to the leaderboard?', 'Champion');
       if (name !== null) {
         addLeaderboardEntry(name, this.score, this.character);

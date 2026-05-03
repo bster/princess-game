@@ -40,6 +40,7 @@ import { drawPowerUpOrb, drawAbilityHUD } from './sprites/powerupIcons';
 import { hasRunSave } from './progressSave';
 import { getLeaderboardTop } from './leaderboard';
 import { getTitleUi, TITLE_LAYOUT } from './ui/titleLayout';
+import { LEVEL_CLEAR_BTN, GAME_OVER_BTN, VICTORY_BTN } from './ui/postStateButtons';
 import * as Ow from './overworld/overworldMap';
 import { MAP_EXIT_BTN } from './ui/mapExitUi';
 import { TOUCH_LAYOUT } from './input';
@@ -850,10 +851,8 @@ export class Renderer {
       }
     }
 
-    ctx.textAlign = 'center';
-    ctx.font = '15px Georgia';
-    ctx.fillStyle = Math.sin(game.frame * 0.08) > 0 ? '#fff' : 'rgba(255,255,255,0.55)';
-    ctx.fillText('Tap Back to return', W / 2, H - 44);
+    const backBtn = { x: W / 2 - 70, y: H - 72, w: 140, h: 40 };
+    this._drawCtaButton(backBtn, 'Back', null, 'plain', game.frame);
 
     ctx.textAlign = 'left';
   }
@@ -1136,15 +1135,92 @@ export class Renderer {
       }
     }
 
-    // Tap to continue
-    if (timer > 180 && Math.sin(game.frame * 0.08) > 0) {
-      ctx.font = '18px Georgia';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText('Jump — return to kingdom map', W / 2, H * 0.72);
+    if (timer > 150) {
+      this._drawCtaButton(LEVEL_CLEAR_BTN, 'Continue', 'Tap or press A', 'primary', game.frame);
     }
 
     ctx.textAlign = 'left';
+  }
+
+  _drawCtaButton(b, label, sub, variant, frame) {
+    const ctx = this.ctx;
+    const isPrimary = variant === 'primary';
+    const isAccent = variant === 'accent';
+    const isDanger = variant === 'danger';
+
+    let fillTop, fillBot, stroke, textColor, subColor;
+    if (isAccent) {
+      fillTop = '#2ecc71';
+      fillBot = '#16a34a';
+      stroke = '#0c5e2c';
+      textColor = '#0d2316';
+      subColor = 'rgba(13,35,22,0.7)';
+    } else if (isPrimary) {
+      fillTop = '#FFD66B';
+      fillBot = '#e0a915';
+      stroke = '#7a4f00';
+      textColor = '#1b1535';
+      subColor = 'rgba(27,21,53,0.65)';
+    } else if (isDanger) {
+      fillTop = '#ff7676';
+      fillBot = '#c0392b';
+      stroke = '#5b1410';
+      textColor = '#fff';
+      subColor = 'rgba(255,255,255,0.75)';
+    } else {
+      fillTop = 'rgba(255,255,255,0.18)';
+      fillBot = 'rgba(255,255,255,0.06)';
+      stroke = 'rgba(255,255,255,0.55)';
+      textColor = '#fff';
+      subColor = 'rgba(255,255,255,0.65)';
+    }
+
+    const pulse = 0.7 + 0.3 * Math.sin((frame || 0) * 0.12);
+    ctx.save();
+
+    // Soft halo around primary CTAs so they read as the obvious target
+    if (isPrimary || isAccent || isDanger) {
+      const halo = ctx.createRadialGradient(
+        b.x + b.w / 2,
+        b.y + b.h / 2,
+        b.w * 0.2,
+        b.x + b.w / 2,
+        b.y + b.h / 2,
+        b.w * 0.7
+      );
+      const haloColor = isAccent ? '46,204,113' : isDanger ? '231,76,60' : '255,214,107';
+      halo.addColorStop(0, `rgba(${haloColor},${0.18 + pulse * 0.18})`);
+      halo.addColorStop(1, `rgba(${haloColor},0)`);
+      ctx.fillStyle = halo;
+      ctx.fillRect(b.x - 40, b.y - 30, b.w + 80, b.h + 60);
+    }
+
+    const bgGrad = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+    bgGrad.addColorStop(0, fillTop);
+    bgGrad.addColorStop(1, fillBot);
+    ctx.fillStyle = bgGrad;
+    ctx.beginPath();
+    ctx.roundRect(b.x, b.y, b.w, b.h, 16);
+    ctx.fill();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 22px Georgia';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2 - (sub ? 6 : 0));
+    if (sub) {
+      ctx.font = '12px Georgia';
+      ctx.fillStyle = subColor;
+      ctx.fillText(sub, b.x + b.w / 2, b.y + b.h / 2 + 14);
+    }
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+
+    ctx.restore();
   }
 
   renderGameOver(game) {
@@ -1170,12 +1246,8 @@ export class Renderer {
     ctx.fillStyle = C.crown;
     ctx.fillText('Score: ' + game.score, W / 2, H * 0.45);
 
-    if (game.gameOverTimer > 60) {
-      if (Math.sin(game.frame * 0.08) > 0) {
-        ctx.font = '18px Georgia';
-        ctx.fillStyle = '#fff';
-        ctx.fillText('Tap — save score & return to title', W / 2, H * 0.58);
-      }
+    if (game.gameOverTimer > 70) {
+      this._drawCtaButton(GAME_OVER_BTN, 'Save & Quit', 'Tap or press A', 'danger', game.frame);
     }
 
     ctx.textAlign = 'left';
@@ -1269,12 +1341,7 @@ export class Renderer {
     }
 
     if (game.victoryTimer > 120) {
-      if (Math.sin(game.frame * 0.08) > 0) {
-        ctx.font = '20px Georgia';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.fillText('Tap to Play Again', W / 2, H * 0.68);
-      }
+      this._drawCtaButton(VICTORY_BTN, 'Play Again', 'Tap or press A', 'accent', game.frame);
     }
 
     ctx.textAlign = 'left';
