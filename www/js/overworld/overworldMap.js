@@ -23,12 +23,12 @@ const RAW_NODES = [
   { id: 'L1', kind: 'level', levelIndex: 1, x: 780, y: 1180, w: 78, h: 70, label: '2' },
   { id: 'L2', kind: 'level', levelIndex: 2, x: 280, y: 1060, w: 78, h: 70, label: '3' },
   { id: 'L3', kind: 'level', levelIndex: 3, x: 880, y: 940, w: 78, h: 70, label: '4' },
-  { id: 'L4', kind: 'level', levelIndex: 4, x: 200, y: 820, w: 78, h: 70, label: '5' },
+  { id: 'L4', kind: 'level', levelIndex: 4, x: 200, y: 820, w: 78, h: 70, label: '5', boss: true },
   { id: 'M_claw', kind: 'minigame', miniId: 'claw', x: 520, y: 780, w: 96, h: 72, label: 'Claw' },
   { id: 'L5', kind: 'level', levelIndex: 5, x: 760, y: 700, w: 78, h: 70, label: '6' },
   { id: 'L6', kind: 'level', levelIndex: 6, x: 320, y: 560, w: 78, h: 70, label: '7' },
   { id: 'M_hoops', kind: 'minigame', miniId: 'hoops', x: 540, y: 520, w: 96, h: 72, label: 'Hoops' },
-  { id: 'L7', kind: 'level', levelIndex: 7, x: 840, y: 420, w: 78, h: 70, label: '8' },
+  { id: 'L7', kind: 'level', levelIndex: 7, x: 840, y: 420, w: 78, h: 70, label: '8', final: true },
 ];
 
 /**
