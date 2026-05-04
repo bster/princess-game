@@ -12,8 +12,13 @@ export class FlyingEnemy extends Entity {
     this.subtype = 'flying';
     this.startX = x;
     this.anchorY = y;
-    this.patrolRange = patrolRange;
-    this.moveSpeed = 1.8;
+    // Widen the patrol envelope so the swoop is readable (min 180px wide).
+    this.patrolRange = Math.max(patrolRange, 180);
+    this.moveSpeed = 1.45;
+    // Vertical swoop amplitude — tall enough to dive below stomp height
+    // then rise out of jump range, giving the player a clear timing window.
+    this.swoopAmp = 70;
+    this.swoopFreq = 0.035;
     this.vx = -1;
     this.hp = ENEMY_HP.flying;
     this.maxHp = this.hp;
@@ -23,7 +28,7 @@ export class FlyingEnemy extends Entity {
   update() {
     if (!this.alive) return;
     this.frame++;
-    this.y = this.anchorY + Math.sin(this.frame * 0.06) * 6;
+    this.y = this.anchorY + Math.sin(this.frame * this.swoopFreq) * this.swoopAmp;
     this.x += this.vx * this.moveSpeed;
     if (this.x >= this.startX + this.patrolRange) this.vx = -1;
     if (this.x <= this.startX - this.patrolRange) this.vx = 1;
