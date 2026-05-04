@@ -312,27 +312,47 @@ export class Renderer {
       const ex = en.x - camX;
       if (ex > W + 60 || ex < -60) continue;
 
+      const enOpts = {
+        facing: en.facing,
+        moving: en.vx !== undefined ? Math.abs(en.vx) > 0.05 : true,
+        shootCooldown: en.shootCooldown,
+        state: en.state,
+        stateTimer: en.stateTimer,
+      };
       if (en.alive) {
-        if (en.subtype === 'slime') drawSlime(ctx, ex, en.y, en.frame, false);
-        else if (en.subtype === 'flying') drawFlyingEnemy(ctx, ex, en.y, en.frame, false);
+        if (en.subtype === 'slime') drawSlime(ctx, ex, en.y, en.frame, false, enOpts);
+        else if (en.subtype === 'flying')
+          drawFlyingEnemy(ctx, ex, en.y, en.frame, false, enOpts);
         else if (en.subtype === 'shooter')
-          drawShooterEnemy(ctx, ex, en.y, en.frame, en.facing, false);
+          drawShooterEnemy(ctx, ex, en.y, en.frame, en.facing, false, enOpts);
         else if (en.subtype === 'boss')
-          drawBoss(ctx, ex, en.y, en.frame, en.phase, en.hp, en.maxHp, en.dazed, en.facing);
-        else drawGoblin(ctx, ex, en.y, en.frame, false);
+          drawBoss(
+            ctx,
+            ex,
+            en.y,
+            en.frame,
+            en.phase,
+            en.hp,
+            en.maxHp,
+            en.dazed,
+            en.facing,
+            enOpts
+          );
+        else drawGoblin(ctx, ex, en.y, en.frame, false, enOpts);
 
         // White flash overlay on damage
         if (en.flashTimer > 0 && en.flashTimer % 2 === 0) {
           this._flashOverlay(ctx, ex - en.w / 2, en.y, en.w, en.h);
         }
       } else if (en.squishTimer > 0) {
-        if (en.subtype === 'slime') drawSlime(ctx, ex, en.y + 12, en.frame, true);
-        else if (en.subtype === 'flying') drawFlyingEnemy(ctx, ex, en.y + 12, en.frame, true);
+        if (en.subtype === 'slime') drawSlime(ctx, ex, en.y + 12, en.frame, true, enOpts);
+        else if (en.subtype === 'flying')
+          drawFlyingEnemy(ctx, ex, en.y + 12, en.frame, true, enOpts);
         else if (en.subtype === 'shooter')
-          drawShooterEnemy(ctx, ex, en.y + 16, en.frame, en.facing, true);
+          drawShooterEnemy(ctx, ex, en.y + 16, en.frame, en.facing, true, enOpts);
         else if (en.subtype === 'boss')
-          drawBoss(ctx, ex, en.y, en.frame, en.phase, 0, en.maxHp, true, en.facing);
-        else drawGoblin(ctx, ex, en.y + 20, en.frame, true);
+          drawBoss(ctx, ex, en.y, en.frame, en.phase, 0, en.maxHp, true, en.facing, enOpts);
+        else drawGoblin(ctx, ex, en.y + 20, en.frame, true, enOpts);
       }
     }
 
@@ -364,7 +384,8 @@ export class Renderer {
             !player.onGround,
             player.crouching,
             player.scaleX * growthScale,
-            player.scaleY * growthScale
+            player.scaleY * growthScale,
+            player.vx
           );
         } else {
           drawPrincess(
@@ -376,7 +397,8 @@ export class Renderer {
             !player.onGround,
             player.crouching,
             player.scaleX * growthScale,
-            player.scaleY * growthScale
+            player.scaleY * growthScale,
+            player.vx
           );
         }
 
